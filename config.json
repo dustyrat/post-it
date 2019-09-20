@@ -1,0 +1,18 @@
+{
+  "log-level": "info",
+  "report-caller": false,
+
+  "batch-size": 100,
+  "thread-pool": 10,
+
+  "client": {
+	"timeout-ms": 3000,
+	"insecure-skip-verify": true,
+	"max-connection-per-host": 100,
+	"max-idle-connections": 100,
+	"max-idle-connections-per-host": 10,
+	"idle-connection-timeout-ms": 5000,
+	"max-retry": 5,
+	"retry-delay-ms": 100
+  }
+}

@@ -4,39 +4,36 @@ import (
 	"bufio"
 	"encoding/csv"
 	"errors"
-	"github.com/cheggaaa/pb/v3"
-	"github.com/goinggo/work"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"post-it/pkg/client"
 	"time"
+
+	"github.com/cheggaaa/pb/v3"
+	"github.com/goinggo/work"
+	log "github.com/sirupsen/logrus"
 )
 
 type Controller struct {
-	Client *client.Client
-	Method string
-	Url    string
-	headers []string
-
-	BatchSize  int
-	ThreadPool int
-
-	//RecordBody bool
-
-	Stats *Stats
+	Client    *client.Client
+	Method    string
+	Url       string
+	headers   []string
+	BatchSize int
+	Routines  int
+	Stats     *Stats
 }
 
 func (c *Controller) resetStats() {
 	c.Stats = &Stats{
 		Responses: make(map[int]int, 0),
-		Entries: make([]Entry, 0),
+		Entries:   make([]Entry, 0),
 	}
 }
 
 func (c *Controller) Run(input, output string) error {
 	c.resetStats()
-	defer func(){
+	defer func() {
 		c.Stats.Print()
 	}()
 
@@ -69,7 +66,7 @@ func (c *Controller) Run(input, output string) error {
 	progress := pb.Full.Start(total)
 	defer progress.Finish()
 
-	wp, err := work.New(c.ThreadPool, time.Hour*24, func(message string){})
+	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
 	}
@@ -85,13 +82,13 @@ func (c *Controller) Run(input, output string) error {
 			writer: writer,
 			client: c.Client,
 			method: c.Method,
-			url: c.Url,
-			chunk: chunks[i],
-			batch: batch,
-			from: from,
-			to: to,
+			url:    c.Url,
+			chunk:  chunks[i],
+			batch:  batch,
+			from:   from,
+			to:     to,
 			//recordBody: c.RecordBody,
-			stats: c.Stats,
+			stats:    c.Stats,
 			progress: progress,
 		}
 		wp.Run(&w)
@@ -101,14 +98,14 @@ func (c *Controller) Run(input, output string) error {
 		batch++
 	}
 
-	// wait for all worker threads to finish doing their work
+	// wait for all worker Routines to finish doing their work
 	wp.Shutdown()
 	return nil
 }
 
 type Record struct {
 	Headers []string
-	Fields map[string]string
+	Fields  map[string]string
 }
 
 func parse(reader io.Reader) ([]string, []Record) {
@@ -127,7 +124,7 @@ func parse(reader io.Reader) ([]string, []Record) {
 		if headers == nil {
 			headers = line
 		} else {
-			record := Record{ Headers: headers, Fields: make(map[string]string) }
+			record := Record{Headers: headers, Fields: make(map[string]string)}
 			for i := range headers {
 				record.Fields[headers[i]] = line[i]
 			}

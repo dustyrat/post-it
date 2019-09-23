@@ -35,7 +35,7 @@ type worker struct {
 	method string
 	url    string
 	chunk  []csv.Record
-	writer *Writer
+	writer *csv.Writer
 
 	to    int
 	from  int
@@ -107,7 +107,28 @@ func (w *worker) call(record csv.Record) {
 	entry.Status = response.StatusCode
 	w.stats.Increment(response.StatusCode)
 
-	if !client.IsSuccessful(response.StatusCode) {
-		entry.Error = errors.New(string(response.Body))
+	entry.ResponseBody = string(response.Body)
+	entry.Headers = headerToString(response.Header)
+}
+
+func headerToString(headers http.Header) string {
+	str := ""
+	i := 0
+	for key, values := range headers {
+		str += fmt.Sprintf("%s: ", key)
+		for j, value := range values {
+			str += value
+			if j < len(values)-1 {
+				str += ", "
+			}
+		}
+
+		if i < len(headers)-1 {
+			str += "; "
+		} else {
+			str += ";"
+		}
+		i++
 	}
+	return str
 }

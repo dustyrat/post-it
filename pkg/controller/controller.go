@@ -32,14 +32,17 @@ type Controller struct {
 	Method  string
 	Url     string
 	headers []string
+	chunks  [][]csv.Record
 
-	WorkerPool *work.Pool
-	BatchSize  int
-	Routines   int
-	Stats      *Stats
+	WorkerPool         *work.Pool
+	BatchSize          int
+	Routines           int
+	Stats              *Stats
+	RecordHeaders      bool
+	RecordResponseBody bool
 
 	Input  *os.File
-	Output *Writer
+	Output *csv.Writer
 }
 
 func (c *Controller) reset() {
@@ -49,7 +52,7 @@ func (c *Controller) reset() {
 	}
 }
 
-func (c *Controller) RunFile() error {
+func (c *Controller) Run() error {
 	c.reset()
 	defer func() {
 		c.Stats.Print()
@@ -59,9 +62,10 @@ func (c *Controller) RunFile() error {
 	to := c.BatchSize
 	batch := 1
 
-	reader := bufio.NewReader(c.Input)
-	input := csv.Parse(reader)
+	input := csv.Parse(bufio.NewReader(c.Input))
 	input.Headers = append(input.Headers, "status")
+	input.Headers = append(input.Headers, "headers")
+	input.Headers = append(input.Headers, "response_body")
 	input.Headers = append(input.Headers, "error")
 
 	c.Output.Write(input.Headers)
@@ -71,11 +75,10 @@ func (c *Controller) RunFile() error {
 	progress := pb.Full.Start(total)
 	defer progress.Finish()
 
-	wg, err := work.New(c.Routines, time.Hour*24, func(message string) {})
+	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
 	}
-	c.WorkerPool = wg
 
 	var chunks [][]csv.Record
 	for c.BatchSize < len(input.Records) {
@@ -96,7 +99,7 @@ func (c *Controller) RunFile() error {
 			stats:    c.Stats,
 			progress: progress,
 		}
-		c.WorkerPool.Run(&w)
+		wp.Run(&w)
 
 		from = from + c.BatchSize
 		to = to + c.BatchSize
@@ -104,6 +107,6 @@ func (c *Controller) RunFile() error {
 	}
 
 	// wait for all worker Routines to finish doing their work
-	c.WorkerPool.Shutdown()
+	wp.Shutdown()
 	return nil
 }

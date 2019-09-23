@@ -1,18 +1,3 @@
-/*
-Copyright © 2019 Dustin Ratcliffe
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package cmd
 
 import (
@@ -82,13 +67,13 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&Input, "input", "i", "", "Input File")
 	rootCmd.PersistentFlags().StringVarP(&Output, "output", "o", "", "Output File")
-	rootCmd.PersistentFlags().StringVar(&Output, "response-types", "", "Response types to output. eg: all, error, status")
-	rootCmd.PersistentFlags().StringVar(&Output, "response-status", "any", "Response status to output. eg: 1xx, 2xx, 3xx, 4xx, 5xx, 200, 201, 404, 503, any")
+	rootCmd.PersistentFlags().StringVar(&ResponseTypes, "response-types", "", "Response types to output. eg: all, error, status")
+	rootCmd.PersistentFlags().StringVar(&ResponseStatus, "response-status", "any", "Response status to output. eg: any, 2xx, 4xx, 5xx, 200, 301, 404, 503...")
 
 	rootCmd.PersistentFlags().IntVarP(&BatchSize, "batch", "b", 100, "Batch Size")
 	rootCmd.PersistentFlags().IntVarP(&Routines, "routines", "r", 10, "Routines")
 
-	rootCmd.PersistentFlags().StringVarP(&URL, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path' or 'http://localhost:3000/path/{{column_name}}' if input file is specified")
+	rootCmd.PersistentFlags().StringVarP(&URL, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path' or 'http://localhost:3000/path/{column_name}' if input file is specified")
 	rootCmd.PersistentFlags().IntVarP(&Timeout, "timeout", "t", 3000, "Connection Timeout")
 	rootCmd.PersistentFlags().IntVar(&IdleTimeout, "idle-timeout", 5000, "Idle Connection Timeout")
 	rootCmd.PersistentFlags().BoolVar(&InsecureSkipVerify, "insecure-skip-verify", true, "Insecure Skip Verify")

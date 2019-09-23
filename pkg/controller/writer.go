@@ -1,3 +1,18 @@
+/*
+Copyright © 2019 Dustin Ratcliffe <dustin.k.ratcliffe@gmail.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package controller
 
 import (
@@ -7,7 +22,7 @@ import (
 )
 
 type Writer struct {
-	mutex *sync.Mutex
+	mutex  *sync.Mutex
 	writer *csv.Writer
 }
 
@@ -17,7 +32,7 @@ func NewWriter(fileName string) (*Writer, error) {
 		return nil, err
 	}
 	w := csv.NewWriter(csvFile)
-	return &Writer{writer:w, mutex: &sync.Mutex{}}, nil
+	return &Writer{writer: w, mutex: &sync.Mutex{}}, nil
 }
 
 func (w *Writer) Write(row []string) {
@@ -25,7 +40,6 @@ func (w *Writer) Write(row []string) {
 	w.writer.Write(row)
 	w.mutex.Unlock()
 }
-
 
 func (w *Writer) WriteAll(rows [][]string) {
 	w.mutex.Lock()

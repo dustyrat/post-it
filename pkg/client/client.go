@@ -1,15 +1,31 @@
+/*
+Copyright © 2019 Dustin Ratcliffe <dustin.k.ratcliffe@gmail.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package client
 
 import (
 	"crypto/tls"
 	"errors"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //Client represents the http client configurables to make http request.
@@ -276,4 +292,3 @@ func IsClientError(code int) bool {
 func inRange(code, a, b int) bool {
 	return a <= code && code < b
 }
-

@@ -1,38 +1,56 @@
+/*
+Copyright © 2019 Dustin Ratcliffe <dustin.k.ratcliffe@gmail.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package controller
 
 import (
 	"bufio"
-	"encoding/csv"
 	"errors"
-	"io"
 	"os"
 	"post-it/pkg/client"
+	"post-it/pkg/csv"
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/goinggo/work"
-	log "github.com/sirupsen/logrus"
 )
 
 type Controller struct {
-	Client    *client.Client
-	Method    string
-	Url       string
-	headers   []string
-	BatchSize int
-	Routines  int
-	Stats     *Stats
+	Client  *client.Client
+	Method  string
+	Url     string
+	headers []string
+
+	WorkerPool *work.Pool
+	BatchSize  int
+	Routines   int
+	Stats      *Stats
+
+	Input  *os.File
+	Output *Writer
 }
 
-func (c *Controller) resetStats() {
+func (c *Controller) reset() {
 	c.Stats = &Stats{
 		Responses: make(map[int]int, 0),
 		Entries:   make([]Entry, 0),
 	}
 }
 
-func (c *Controller) Run(input, output string) error {
-	c.resetStats()
+func (c *Controller) RunFile() error {
+	c.reset()
 	defer func() {
 		c.Stats.Print()
 	}()
@@ -41,57 +59,44 @@ func (c *Controller) Run(input, output string) error {
 	to := c.BatchSize
 	batch := 1
 
-	inputfile, err := os.Open(input)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer inputfile.Close()
+	reader := bufio.NewReader(c.Input)
+	input := csv.Parse(reader)
+	input.Headers = append(input.Headers, "status")
+	input.Headers = append(input.Headers, "error")
 
-	reader := bufio.NewReader(inputfile)
-	headers, records := parse(reader)
-	headers = append(headers, "status")
-	headers = append(headers, "error")
-	//if c.RecordBody {
-	//	headers = append(headers, "body")
-	//}
+	c.Output.Write(input.Headers)
+	c.Output.Flush()
 
-	writer, err := NewWriter(output)
-	if err != nil {
-		log.Fatal(err)
-	}
-	writer.Write(headers)
-	writer.Flush()
-
-	total := len(records)
+	total := len(input.Records)
 	progress := pb.Full.Start(total)
 	defer progress.Finish()
 
-	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
+	wg, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
 	}
+	c.WorkerPool = wg
 
-	var chunks [][]Record
-	for c.BatchSize < len(records) {
-		records, chunks = records[c.BatchSize:], append(chunks, records[0:c.BatchSize:c.BatchSize])
+	var chunks [][]csv.Record
+	for c.BatchSize < len(input.Records) {
+		input.Records, chunks = input.Records[c.BatchSize:], append(chunks, input.Records[0:c.BatchSize:c.BatchSize])
 	}
-	chunks = append(chunks, records)
+	chunks = append(chunks, input.Records)
 
 	for i := range chunks {
 		w := worker{
-			writer: writer,
-			client: c.Client,
-			method: c.Method,
-			url:    c.Url,
-			chunk:  chunks[i],
-			batch:  batch,
-			from:   from,
-			to:     to,
-			//recordBody: c.RecordBody,
+			writer:   c.Output,
+			client:   c.Client,
+			method:   c.Method,
+			url:      c.Url,
+			chunk:    chunks[i],
+			batch:    batch,
+			from:     from,
+			to:       to,
 			stats:    c.Stats,
 			progress: progress,
 		}
-		wp.Run(&w)
+		c.WorkerPool.Run(&w)
 
 		from = from + c.BatchSize
 		to = to + c.BatchSize
@@ -99,37 +104,6 @@ func (c *Controller) Run(input, output string) error {
 	}
 
 	// wait for all worker Routines to finish doing their work
-	wp.Shutdown()
+	c.WorkerPool.Shutdown()
 	return nil
-}
-
-type Record struct {
-	Headers []string
-	Fields  map[string]string
-}
-
-func parse(reader io.Reader) ([]string, []Record) {
-	r := csv.NewReader(reader)
-	r.LazyQuotes = true
-	r.TrimLeadingSpace = true
-	records := make([]Record, 0)
-	var headers []string
-	for {
-		line, err := r.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			log.Fatal(err)
-		}
-		if headers == nil {
-			headers = line
-		} else {
-			record := Record{Headers: headers, Fields: make(map[string]string)}
-			for i := range headers {
-				record.Fields[headers[i]] = line[i]
-			}
-			records = append(records, record)
-		}
-	}
-	return headers, records
 }

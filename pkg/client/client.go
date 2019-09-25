@@ -87,160 +87,43 @@ func NewClient(conf Config) (*Client, error) {
 }
 
 // Do determines which http request to make based on the method string value being passed in.
-// Do wraps:
-// 	- Client.Get for http.MethodGet
-// 	- Client.Head for http.MethodHead
-// 	- Client.Post for http.MethodPost
-// 	- Client.Put for http.MethodPut
-// 	- Client.Patch for http.MethodPatch
-// 	- Client.Delete for http.MethodDelete
 func (c *Client) Do(method string, rel *url.URL, headers http.Header, body io.Reader) (*Response, error) {
+	var request *http.Request
+	var err error
+	_url := c.BaseURL.ResolveReference(rel)
 	switch strings.ToUpper(method) {
 	case http.MethodGet:
-		return c.Get(rel, headers)
+		request, err = http.NewRequest(http.MethodGet, _url.String(), nil)
+		if err != nil {
+			return nil, err
+		}
 	case http.MethodHead:
-		return c.Head(rel, headers)
+		request, err = http.NewRequest(http.MethodHead, _url.String(), nil)
+		if err != nil {
+			return nil, err
+		}
 	case http.MethodPost:
-		return c.Post(rel, headers, body)
+		request, err = http.NewRequest(http.MethodPost, _url.String(), body)
+		if err != nil {
+			return nil, err
+		}
 	case http.MethodPut:
-		return c.Put(rel, headers, body)
+		request, err = http.NewRequest(http.MethodPut, _url.String(), body)
+		if err != nil {
+			return nil, err
+		}
 	case http.MethodPatch:
-		return c.Patch(rel, headers, body)
+		request, err = http.NewRequest(http.MethodPatch, _url.String(), body)
+		if err != nil {
+			return nil, err
+		}
 	case http.MethodDelete:
-		return c.Delete(rel, headers)
+		request, err = http.NewRequest(http.MethodDelete, _url.String(), nil)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, errors.New("unsupported method")
-	}
-}
-
-// Get issues a GET to the specified URL. If the response is one of the
-// following redirect codes, Get follows the redirect after calling the
-// Client's CheckRedirect function:
-//
-//    301 (Moved Permanently)
-//    302 (Found)
-//    303 (See Other)
-//    307 (Temporary Redirect)
-//    308 (Permanent Redirect)
-//
-// An error is returned if the Client's CheckRedirect function fails
-// or if there was an HTTP protocol error. A non-2xx response doesn't
-// cause an error. Any returned error will be of type *url.Error. The
-// url.Error value's Timeout method will report true if request timed
-// out or was canceled.
-//
-// When err is nil, resp always contains a non-nil resp.Body.
-// Get wraps http.NewRequest and sets up the request with default headers passing it to Client.do
-func (c *Client) Get(rel *url.URL, headers http.Header) (*Response, error) {
-	_url := c.BaseURL.ResolveReference(rel)
-	request, err := http.NewRequest(http.MethodGet, _url.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Adding headers we configured for our client's headers to our request
-	for k, vs := range c.DefaultHeaders {
-		for _, v := range vs {
-			headers.Add(k, v)
-		}
-	}
-	request.Header = headers
-	return c.do(request)
-}
-
-// Head issues a HEAD to the specified URL. If the response is one of the
-// following redirect codes, Head follows the redirect after calling the
-// Client's CheckRedirect function:
-//
-//    301 (Moved Permanently)
-//    302 (Found)
-//    303 (See Other)
-//    307 (Temporary Redirect)
-//    308 (Permanent Redirect)
-// Head wraps http.NewRequest and sets up the request with default headers passing it to Client.do
-func (c *Client) Head(rel *url.URL, headers http.Header) (*Response, error) {
-	_url := c.BaseURL.ResolveReference(rel)
-	request, err := http.NewRequest(http.MethodHead, _url.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Adding headers we configured for our client's headers to our request
-	for k, vs := range c.DefaultHeaders {
-		for _, v := range vs {
-			headers.Add(k, v)
-		}
-	}
-	request.Header = headers
-	return c.do(request)
-}
-
-// Post issues a POST to the specified URL with given headers and body.
-// Post wraps http.NewRequest and sets up the request with default headers passing it to Client.do
-func (c *Client) Post(rel *url.URL, headers http.Header, body io.Reader) (*Response, error) {
-	_url := c.BaseURL.ResolveReference(rel)
-	request, err := http.NewRequest(http.MethodPost, _url.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Adding headers we configured for our client's headers to our request
-	for k, vs := range c.DefaultHeaders {
-		for _, v := range vs {
-			headers.Add(k, v)
-		}
-	}
-	request.Header = headers
-	return c.do(request)
-}
-
-// Put issues a PUT to the specified URL with given headers and body.
-// Put wraps http.NewRequest and sets up the request with default headers passing it to Client.do
-func (c *Client) Put(rel *url.URL, headers http.Header, body io.Reader) (*Response, error) {
-	_url := c.BaseURL.ResolveReference(rel)
-	request, err := http.NewRequest(http.MethodPut, _url.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Adding headers we configured for our client's headers to our request
-	for k, vs := range c.DefaultHeaders {
-		for _, v := range vs {
-			headers.Add(k, v)
-		}
-	}
-	request.Header = headers
-	return c.do(request)
-}
-
-// Patch issues a PATCH to the specified URL with given headers and body.
-// Patch wraps http.NewRequest and sets up the request with default headers passing it to Client.do
-func (c *Client) Patch(rel *url.URL, headers http.Header, body io.Reader) (*Response, error) {
-	_url := c.BaseURL.ResolveReference(rel)
-	request, err := http.NewRequest(http.MethodPatch, _url.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Adding headers we configured for our client's headers to our request
-	for k, vs := range c.DefaultHeaders {
-		for _, v := range vs {
-			headers.Add(k, v)
-		}
-	}
-
-	request.Header = headers
-
-	return c.do(request)
-}
-
-// Delete issues a DELETE to the specified URL with given headers.
-// Delete wraps http.NewRequest and sets up the request with default headers passing it to Client.do
-func (c *Client) Delete(rel *url.URL, headers http.Header) (*Response, error) {
-	_url := c.BaseURL.ResolveReference(rel)
-	request, err := http.NewRequest(http.MethodDelete, _url.String(), nil)
-	if err != nil {
-		return nil, err
 	}
 
 	// Adding headers we configured for our client's headers to our request
@@ -349,6 +232,11 @@ func IsServerError(code int) bool {
 //IsClientError checks if code being passed is a client error code
 func IsClientError(code int) bool {
 	return inRange(code, 400, 500)
+}
+
+//inRange checks if code being passed is between a set of numbers
+func InRange(code, a, b int) bool {
+	return inRange(code, a, b)
 }
 
 //inRange checks if code being passed is between a set of numbers

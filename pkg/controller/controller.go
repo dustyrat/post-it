@@ -34,12 +34,16 @@ type Controller struct {
 	headers []string
 	chunks  [][]csv.Record
 
-	WorkerPool         *work.Pool
-	BatchSize          int
-	Routines           int
-	Stats              *Stats
-	RecordHeaders      bool
-	RecordResponseBody bool
+	WorkerPool *work.Pool
+	BatchSize  int
+	Routines   int
+	Stats      *Stats
+
+	RequestBodyColumn string
+	RecordHeaders     bool
+	RecordBody        bool
+	ResponseType      string
+	Status            string
 
 	Input  *os.File
 	Output *csv.Writer
@@ -64,8 +68,12 @@ func (c *Controller) Run() error {
 
 	input := csv.Parse(bufio.NewReader(c.Input))
 	input.Headers = append(input.Headers, "status")
-	input.Headers = append(input.Headers, "headers")
-	input.Headers = append(input.Headers, "response_body")
+	if c.RecordHeaders {
+		input.Headers = append(input.Headers, "headers")
+	}
+	if c.RecordBody {
+		input.Headers = append(input.Headers, "response_body")
+	}
 	input.Headers = append(input.Headers, "error")
 
 	c.Output.Write(input.Headers)
@@ -85,19 +93,23 @@ func (c *Controller) Run() error {
 		input.Records, chunks = input.Records[c.BatchSize:], append(chunks, input.Records[0:c.BatchSize:c.BatchSize])
 	}
 	chunks = append(chunks, input.Records)
-
 	for i := range chunks {
 		w := worker{
-			writer:   c.Output,
-			client:   c.Client,
-			method:   c.Method,
-			url:      c.Url,
-			chunk:    chunks[i],
-			batch:    batch,
-			from:     from,
-			to:       to,
-			stats:    c.Stats,
-			progress: progress,
+			writer:            c.Output,
+			client:            c.Client,
+			method:            c.Method,
+			url:               c.Url,
+			chunk:             chunks[i],
+			batch:             batch,
+			from:              from,
+			to:                to,
+			stats:             c.Stats,
+			progress:          progress,
+			status:            c.Status,
+			responseType:      c.ResponseType,
+			recordBody:        c.RecordBody,
+			recordHeaders:     c.RecordHeaders,
+			requestBodyColumn: c.RequestBodyColumn,
 		}
 		wp.Run(&w)
 

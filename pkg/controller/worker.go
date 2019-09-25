@@ -16,18 +16,33 @@ limitations under the License.
 package controller
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"post-it/pkg/client"
 	"post-it/pkg/csv"
+	"regexp"
 	"runtime/debug"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/cheggaaa/pb/v3"
 	log "github.com/sirupsen/logrus"
 )
+
+var (
+	status_dxx *regexp.Regexp
+	status_ddd *regexp.Regexp
+)
+
+func init() {
+	status_dxx = regexp.MustCompile("^-?\\dxx")
+	status_ddd = regexp.MustCompile("\\d{3}")
+}
 
 type worker struct {
 	id     int
@@ -35,6 +50,13 @@ type worker struct {
 	method string
 	url    string
 	chunk  []csv.Record
+
+	requestBodyColumn string
+	status            string
+	responseType      string
+	recordHeaders     bool
+	recordBody        bool
+
 	writer *csv.Writer
 
 	to    int
@@ -73,14 +95,8 @@ func (w *worker) done() {
 
 func (w *worker) call(record csv.Record) {
 	defer w.progress.Increment()
-	defer w.writer.Flush()
-
 	entry := Entry{Record: record}
-	defer func() {
-		if !client.IsSuccessful(entry.Status) {
-			w.writer.Write(entry.Strings())
-		}
-	}()
+	defer w.write(&entry)
 
 	rawurl := w.url
 	for k, v := range record.Fields {
@@ -93,29 +109,76 @@ func (w *worker) call(record csv.Record) {
 		return
 	}
 
-	var response *client.Response
-	if method, ok := record.Fields["method"]; ok {
-		response, err = w.client.Do(method, _url, http.Header{}, nil)
-	} else {
-		response, err = w.client.Do(w.method, _url, http.Header{}, nil)
+	var body io.Reader
+	if requestBody, ok := record.Fields[w.requestBodyColumn]; ok {
+		body = bytes.NewBuffer([]byte(requestBody))
 	}
+
+	response, err := w.client.Do(w.method, _url, http.Header{}, body)
 	if err != nil {
 		entry.Error = err
 		return
 	}
 
-	entry.Status = response.StatusCode
 	w.stats.Increment(response.StatusCode)
+	entry.Status = response.StatusCode
 
-	entry.ResponseBody = string(response.Body)
-	entry.Headers = headerToString(response.Header)
+	if w.recordHeaders {
+		entry.Headers = headerToString(response.Header)
+	}
+
+	if w.recordBody {
+		entry.ResponseBody = string(response.Body)
+	}
+}
+
+func (w *worker) write(entry *Entry) {
+	defer w.writer.Flush()
+	switch w.responseType {
+	case "all":
+		w.writer.Write(entry.Strings())
+	case "error":
+		if entry.Error != nil {
+			w.writer.Write(entry.Strings())
+		}
+	case "status":
+		if w.status == "any" {
+			w.writer.Write(entry.Strings())
+		} else if status_dxx.MatchString(w.status) {
+			status, _ := strconv.Atoi(strings.Replace(w.status, "xx", "00", 1))
+			if status > 0 {
+				a := status
+				b := a + 100
+				if client.InRange(entry.Status, a, b) {
+					w.writer.Write(entry.Strings())
+				}
+			} else {
+				a := -status
+				b := a + 100
+				if !client.InRange(entry.Status, a, b) {
+					w.writer.Write(entry.Strings())
+				}
+			}
+		} else if status_ddd.MatchString(w.status) {
+			status, _ := strconv.Atoi(w.status)
+			if entry.Status == status {
+				w.writer.Write(entry.Strings())
+			}
+		}
+	}
 }
 
 func headerToString(headers http.Header) string {
+	keys := make([]string, 0)
+	for key := range headers {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
 	str := ""
-	i := 0
-	for key, values := range headers {
+	for i, key := range keys {
 		str += fmt.Sprintf("%s: ", key)
+		values := headers[key]
 		for j, value := range values {
 			str += value
 			if j < len(values)-1 {
@@ -128,7 +191,6 @@ func headerToString(headers http.Header) string {
 		} else {
 			str += ";"
 		}
-		i++
 	}
 	return str
 }

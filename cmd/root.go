@@ -23,8 +23,10 @@ var (
 	connections        int
 	rawUrl             string
 	headers            []string
-	responseTypes      string
+	responseType       string
 	responseStatus     string
+	recordBody         bool
+	recordHeaders      bool
 	timeout            time.Duration
 	idleTimeout        time.Duration
 	insecureSkipVerify bool
@@ -53,13 +55,16 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&inputFile, "input", "i", "input.csv", "Input File")
 	rootCmd.PersistentFlags().StringVarP(&outputFile, "output", "o", "output.csv", "Output File")
-	//rootCmd.PersistentFlags().StringVar(&responseTypes, "response-types", "", "Response types to output. eg: all, error, status")
-	//rootCmd.PersistentFlags().StringVar(&responseStatus, "response-status", "any", "Response status to output. eg: any, 2xx, 4xx, 5xx, 200, 301, 404, 503...")
+
+	rootCmd.PersistentFlags().StringVar(&responseType, "response-type", "", "Response type to output. eg: all, error, status")
+	rootCmd.PersistentFlags().StringVar(&responseStatus, "response-status", "any", "Response status to output. eg: any, 2xx, -2xx (non 2xx statuses), 4xx, 5xx, 200, 301, 404, 503...")
+	rootCmd.PersistentFlags().BoolVar(&recordBody, "record-body", false, "Output body")
+	rootCmd.PersistentFlags().BoolVar(&recordHeaders, "record-headers", false, "Output headers")
 
 	rootCmd.PersistentFlags().IntVarP(&batchSize, "batch", "b", 100, "Batch Size")
 
 	rootCmd.PersistentFlags().StringVarP(&rawUrl, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path/{column_name}' if input file is specified")
-	rootCmd.PersistentFlags().StringArrayVar(&headers, "header", []string{}, "Header")
+	rootCmd.PersistentFlags().StringArrayVar(&headers, "header", []string{}, "HTTP headers to use (\"K: V\")")
 	rootCmd.PersistentFlags().IntVarP(&connections, "connections", "c", 10, "connections")
 	rootCmd.PersistentFlags().DurationVarP(&timeout, "timeout", "t", 3000*time.Millisecond, "Connection timeout")
 	rootCmd.PersistentFlags().DurationVar(&idleTimeout, "idle-timeout", 500*time.Millisecond, "Idle Connection timeout")
@@ -69,7 +74,18 @@ func init() {
 }
 
 func getController(method string) controller.Controller {
-	ctrl := controller.Controller{Method: method, Url: rawUrl, Client: getClient(), BatchSize: batchSize, Routines: connections}
+	ctrl := controller.Controller{
+		Method:            method,
+		Url:               rawUrl,
+		Client:            getClient(),
+		BatchSize:         batchSize,
+		Routines:          connections,
+		Status:            responseStatus,
+		ResponseType:      responseType,
+		RecordBody:        recordBody,
+		RecordHeaders:     recordHeaders,
+		RequestBodyColumn: body,
+	}
 	input, err := os.Open(inputFile)
 	if err != nil {
 		log.Fatal(err)

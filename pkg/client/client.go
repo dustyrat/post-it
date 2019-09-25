@@ -24,8 +24,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 //Client represents the http client configurables to make http request.
@@ -51,96 +49,81 @@ type Response struct {
 	Trailer          http.Header
 }
 
-//Config represents the configuration of the api package and all of its structs, methods and functions. These values are
+// Config represents the configuration of the api package and all of its structs, methods and functions. These values are
 // being read in currently from the app.json secret file.
 //
-//NOTE: in the future, we are wanting to look into utilizing config maps and secrets to identify between non-sensitive
+// NOTE: in the future, we are wanting to look into utilizing config maps and secrets to identify between non-sensitive
 // and sensitive information.
 type Config struct {
-	URL string `json:"url"`
-
-	Timeout         time.Duration `json:"timeout-ms"`
-	IdleConnTimeout time.Duration `json:"idle-connection-timeout-ms"`
-
-	Headers            map[string]string `json:"default-headers"`
-	InsecureSkipVerify bool              `json:"insecure-skip-verify"`
-
-	MaxConnsPerHost     int `json:"max-connection-per-host"`
-	MaxIdleConns        int `json:"max-idle-connections"`
-	MaxIdleConnsPerHost int `json:"max-idle-connections-per-host"`
-	MaxRetry            int `json:"max-retry"`
-
-	RetryDelay time.Duration `json:"retry-delay-ms"`
+	Timeout            time.Duration
+	IdleConnTimeout    time.Duration
+	Headers            http.Header
+	InsecureSkipVerify bool
+	MaxConnsPerHost    int
+	MaxRetry           int
+	RetryDelay         time.Duration
 }
 
-//NewClient creates a new instance of a http client.
-//In order to create a new client, we need to instantiate and configure three structs from the http package:
-//	- transport{}
-//	- client{}
-//	- headers{}
-//
-//These configs values are coming from the Config struct being passed in as a parameter. Once all three are configured,
+// NewClient creates a new instance of a http client.
+// These configs values are coming from the Config struct being passed in as a parameter. Once all three are configured,
 // we add each struct to our client implemented struct and return it.
 func NewClient(conf Config) (*Client, error) {
-	_url, err := url.Parse(conf.URL)
-	if err != nil {
-		return nil, err
-	}
-
 	// Transport specifies the mechanism by which individual HTTP requests are made
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: conf.InsecureSkipVerify,
 		},
-		MaxConnsPerHost:     conf.MaxConnsPerHost,
-		MaxIdleConns:        conf.MaxIdleConns,
-		MaxIdleConnsPerHost: conf.MaxIdleConnsPerHost,
-		IdleConnTimeout:     conf.IdleConnTimeout * time.Millisecond,
+		MaxConnsPerHost: conf.MaxConnsPerHost,
+		IdleConnTimeout: conf.IdleConnTimeout,
 	}
 
 	// Http client
 	client := &http.Client{
 		Transport: transport,
-		Timeout:   conf.Timeout * time.Millisecond,
+		Timeout:   conf.Timeout,
 	}
 
-	// A Header represents the key-value pairs in an HTTP header. We are creating all string key pairs headers that are
-	// being read in from the config file.
-	headers := http.Header{}
-	for k, v := range conf.Headers {
-		headers.Set(k, v)
-	}
-
-	return &Client{HttpClient: client, BaseURL: _url, DefaultHeaders: headers, MaxRetry: conf.MaxRetry, RetryDelay: conf.RetryDelay * time.Millisecond}, nil
+	return &Client{HttpClient: client, BaseURL: &url.URL{}, DefaultHeaders: conf.Headers, MaxRetry: conf.MaxRetry, RetryDelay: conf.RetryDelay}, nil
 }
 
-//Do determines which http request to make based on the method string value being passed in. If a valid method value, it
-// will pass the the remaining parameters to its respected request:
-// 	- rel (relationship url)
-// 	- headers (http headers)
-// 	- body (request payload)
+// Do determines which http request to make based on the method string value being passed in.
 func (c *Client) Do(method string, rel *url.URL, headers http.Header, body io.Reader) (*Response, error) {
+	var request *http.Request
+	var err error
+	_url := c.BaseURL.ResolveReference(rel)
 	switch strings.ToUpper(method) {
 	case http.MethodGet:
-		return c.Get(rel, headers)
-	case http.MethodPut:
-		return c.Put(rel, headers, body)
+		request, err = http.NewRequest(http.MethodGet, _url.String(), nil)
+		if err != nil {
+			return nil, err
+		}
+	case http.MethodHead:
+		request, err = http.NewRequest(http.MethodHead, _url.String(), nil)
+		if err != nil {
+			return nil, err
+		}
 	case http.MethodPost:
-		return c.Post(rel, headers, body)
+		request, err = http.NewRequest(http.MethodPost, _url.String(), body)
+		if err != nil {
+			return nil, err
+		}
+	case http.MethodPut:
+		request, err = http.NewRequest(http.MethodPut, _url.String(), body)
+		if err != nil {
+			return nil, err
+		}
+	case http.MethodPatch:
+		request, err = http.NewRequest(http.MethodPatch, _url.String(), body)
+		if err != nil {
+			return nil, err
+		}
 	case http.MethodDelete:
-		return c.Delete(rel, headers)
+		request, err = http.NewRequest(http.MethodDelete, _url.String(), nil)
+		if err != nil {
+			return nil, err
+		}
 	default:
-		return nil, errors.New("could not complete request: unsupported method")
-	}
-}
-
-//Get performs a GET http request with the values being passed from the Do(). Since this request is only pulling
-// information, it does not need to pass a body (body: nil).
-func (c *Client) Get(rel *url.URL, headers http.Header) (*Response, error) {
-	_url := c.BaseURL.ResolveReference(rel)
-	request, err := http.NewRequest(http.MethodGet, _url.String(), nil)
-	if err != nil {
-		return nil, err
+		return nil, errors.New("unsupported method")
 	}
 
 	// Adding headers we configured for our client's headers to our request
@@ -149,104 +132,67 @@ func (c *Client) Get(rel *url.URL, headers http.Header) (*Response, error) {
 			headers.Add(k, v)
 		}
 	}
-
 	request.Header = headers
-
 	return c.do(request)
 }
 
-//Get performs a PUT http request with the values being passed from the Do(). Since this request is updating information,
-// it passes a body (body: io.Reader).
-func (c *Client) Put(rel *url.URL, headers http.Header, body io.Reader) (*Response, error) {
-	_url := c.BaseURL.ResolveReference(rel)
-	request, err := http.NewRequest(http.MethodPut, _url.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Adding headers we configured for our client's headers to our request
-	for k, vs := range c.DefaultHeaders {
-		for _, v := range vs {
-			headers.Add(k, v)
-		}
-	}
-
-	request.Header = headers
-
-	return c.do(request)
-}
-
-//Get performs a POST http request with the values being passed from the Do(). Since this request is creating new
-// information, it passes a body (body: io.Reader).
-func (c *Client) Post(rel *url.URL, headers http.Header, body io.Reader) (*Response, error) {
-	_url := c.BaseURL.ResolveReference(rel)
-	request, err := http.NewRequest(http.MethodPost, _url.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Adding headers we configured for our client's headers to our request
-	for k, vs := range c.DefaultHeaders {
-		for _, v := range vs {
-			headers.Add(k, v)
-		}
-	}
-
-	request.Header = headers
-
-	return c.do(request)
-}
-
-//Get performs a DELETE http request with the values being passed from the Do(). Since this request is removing
-// information, it does not pass a body (body: nil).
-func (c *Client) Delete(rel *url.URL, headers http.Header) (*Response, error) {
-	_url := c.BaseURL.ResolveReference(rel)
-	request, err := http.NewRequest(http.MethodDelete, _url.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Adding headers we configured for our client's headers to our request
-	for k, vs := range c.DefaultHeaders {
-		for _, v := range vs {
-			headers.Add(k, v)
-		}
-	}
-
-	request.Header = headers
-
-	return c.do(request)
-}
-
-//do handles the retry logic for the request.
-// Retry functionality is in place to retry a request that comes back with a server error response code if configured.
+// do wraps Client.handle and retries (Client.MaxRetry) with a delay (Client.RetryDelay) if the response code is 5xx or Client.handle returns an error
 func (c *Client) do(request *http.Request) (*Response, error) {
-	response, err := c.call(request)
-	if err != nil {
-		return nil, err
-	}
-
-	// attempt to retry a failed request if the the configuration for the max retry (MaxRetry int `json:"max-retry") is
-	// greater than 0. Failed request only includes server response codes ranging between 500 - 599.
-	if IsServerError(response.StatusCode) && c.MaxRetry > 0 {
-		log.Warn("Received server response error code, retrying request...")
+	response, err := c.handle(request)
+	if (err != nil || IsServerError(response.StatusCode)) && c.MaxRetry > 0 {
 		retries := 0
 		for retries < c.MaxRetry {
 			time.Sleep(c.RetryDelay)
 
 			retries++
-			response, err = c.call(request)
+			response, err = c.handle(request)
 			if err != nil {
-				return nil, err
+				continue
+			}
+
+			if !IsServerError(response.StatusCode) {
+				return response, err
 			}
 		}
-		log.Warn("Max retries reached")
 	}
 	return response, err
 }
 
-//call executes the actual request being made to the http client with the request that gets created (GET, PUT, POST, DELETE).
-func (c *Client) call(request *http.Request) (*Response, error) {
+// handle sends an HTTP request and returns an HTTP response, following
+// policy (such as redirects, cookies, auth) as configured on the
+// client.
+//
+// An error is returned if caused by client policy (such as
+// CheckRedirect), or failure to speak HTTP (such as a network
+// connectivity problem). A non-2xx status code doesn't cause an
+// error.
+//
+// If the returned error is nil, the Response will contain a non-empty
+// Body. If the Body is not both read to EOF and closed, the Client's
+// underlying RoundTripper (typically Transport) may not be able to
+// re-use a persistent TCP connection to the server for a subsequent
+// "keep-alive" request.
+//
+// The request Body, if non-nil, will be closed by the underlying
+// Transport, even on errors.
+//
+// On error, any Response can be ignored.
+//
+// If the server replies with a redirect, the Client first uses the
+// CheckRedirect function to determine whether the redirect should be
+// followed. If permitted, a 301, 302, or 303 redirect causes
+// subsequent requests to use HTTP method GET
+// (or HEAD if the original request was HEAD), with no body.
+// A 307 or 308 redirect preserves the original HTTP method and body,
+// provided that the Request.GetBody function is defined.
+// The NewRequest function automatically sets GetBody for common
+// standard library body types.
+//
+// Any returned error will be of type *url.Error. The url.Error
+// value's Timeout method will report true if request timed out or was
+// canceled.
+// handle wraps http.Client.Do
+func (c *Client) handle(request *http.Request) (*Response, error) {
 	resp, err := c.HttpClient.Do(request)
 	if err != nil {
 		return nil, err
@@ -286,6 +232,11 @@ func IsServerError(code int) bool {
 //IsClientError checks if code being passed is a client error code
 func IsClientError(code int) bool {
 	return inRange(code, 400, 500)
+}
+
+//inRange checks if code being passed is between a set of numbers
+func InRange(code, a, b int) bool {
+	return inRange(code, a, b)
 }
 
 //inRange checks if code being passed is between a set of numbers

@@ -32,14 +32,21 @@ type Controller struct {
 	Method  string
 	Url     string
 	headers []string
+	chunks  [][]csv.Record
 
 	WorkerPool *work.Pool
 	BatchSize  int
 	Routines   int
 	Stats      *Stats
 
+	RequestBodyColumn string
+	RecordHeaders     bool
+	RecordBody        bool
+	ResponseType      string
+	Status            string
+
 	Input  *os.File
-	Output *Writer
+	Output *csv.Writer
 }
 
 func (c *Controller) reset() {
@@ -49,7 +56,7 @@ func (c *Controller) reset() {
 	}
 }
 
-func (c *Controller) RunFile() error {
+func (c *Controller) Run() error {
 	c.reset()
 	defer func() {
 		c.Stats.Print()
@@ -59,9 +66,14 @@ func (c *Controller) RunFile() error {
 	to := c.BatchSize
 	batch := 1
 
-	reader := bufio.NewReader(c.Input)
-	input := csv.Parse(reader)
+	input := csv.Parse(bufio.NewReader(c.Input))
 	input.Headers = append(input.Headers, "status")
+	if c.RecordHeaders {
+		input.Headers = append(input.Headers, "headers")
+	}
+	if c.RecordBody {
+		input.Headers = append(input.Headers, "response_body")
+	}
 	input.Headers = append(input.Headers, "error")
 
 	c.Output.Write(input.Headers)
@@ -71,32 +83,35 @@ func (c *Controller) RunFile() error {
 	progress := pb.Full.Start(total)
 	defer progress.Finish()
 
-	wg, err := work.New(c.Routines, time.Hour*24, func(message string) {})
+	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
 	}
-	c.WorkerPool = wg
 
 	var chunks [][]csv.Record
 	for c.BatchSize < len(input.Records) {
 		input.Records, chunks = input.Records[c.BatchSize:], append(chunks, input.Records[0:c.BatchSize:c.BatchSize])
 	}
 	chunks = append(chunks, input.Records)
-
 	for i := range chunks {
 		w := worker{
-			writer:   c.Output,
-			client:   c.Client,
-			method:   c.Method,
-			url:      c.Url,
-			chunk:    chunks[i],
-			batch:    batch,
-			from:     from,
-			to:       to,
-			stats:    c.Stats,
-			progress: progress,
+			writer:            c.Output,
+			client:            c.Client,
+			method:            c.Method,
+			url:               c.Url,
+			chunk:             chunks[i],
+			batch:             batch,
+			from:              from,
+			to:                to,
+			stats:             c.Stats,
+			progress:          progress,
+			status:            c.Status,
+			responseType:      c.ResponseType,
+			recordBody:        c.RecordBody,
+			recordHeaders:     c.RecordHeaders,
+			requestBodyColumn: c.RequestBodyColumn,
 		}
-		c.WorkerPool.Run(&w)
+		wp.Run(&w)
 
 		from = from + c.BatchSize
 		to = to + c.BatchSize
@@ -104,6 +119,6 @@ func (c *Controller) RunFile() error {
 	}
 
 	// wait for all worker Routines to finish doing their work
-	c.WorkerPool.Shutdown()
+	wp.Shutdown()
 	return nil
 }

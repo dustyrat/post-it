@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"post-it/pkg/csv"
 	"sort"
 	"strconv"
 	"sync"
@@ -32,12 +33,15 @@ type Stats struct {
 }
 
 type Entry struct {
-	Record Record
-	Status int
-	//Body string
-	Error error
+	Record csv.Record
 
-	//recordBody bool
+	Status       int
+	Headers      string
+	ResponseBody string
+	Error        error
+
+	RecordHeaders      bool
+	RecordResponseBody bool
 }
 
 func (e Entry) Strings() []string {
@@ -50,8 +54,13 @@ func (e Entry) Strings() []string {
 		}
 	}
 	out = append(out, strconv.Itoa(e.Status))
-	//if e.recordBody {
-	//	out = append(out, e.Body)
+
+	//if e.RecordHeaders {
+	out = append(out, e.Headers)
+	//}
+
+	//if e.RecordResponseBody {
+	out = append(out, e.ResponseBody)
 	//}
 
 	if e.Error != nil {
@@ -59,6 +68,7 @@ func (e Entry) Strings() []string {
 	} else {
 		out = append(out, "")
 	}
+
 	return out
 }
 

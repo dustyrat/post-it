@@ -19,6 +19,9 @@ import (
 	"encoding/csv"
 	"io"
 	"log"
+	"os"
+
+	"github.com/spkg/bom"
 )
 
 type Csv struct {
@@ -31,14 +34,18 @@ type Record struct {
 	Fields  map[string]string
 }
 
-func Parse(reader io.Reader) Csv {
-	r := csv.NewReader(reader)
-	r.LazyQuotes = true
-	r.TrimLeadingSpace = true
+func Parse(file *os.File) Csv {
+	if file == nil {
+		return Csv{}
+	}
+
+	reader := csv.NewReader(bom.NewReader(file))
+	reader.LazyQuotes = true
+	reader.TrimLeadingSpace = true
 	records := make([]Record, 0)
 	var headers []string
 	for {
-		line, err := r.Read()
+		line, err := reader.Read()
 		if err == io.EOF {
 			break
 		} else if err != nil {

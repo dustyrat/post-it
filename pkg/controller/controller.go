@@ -16,7 +16,6 @@ limitations under the License.
 package controller
 
 import (
-	"bufio"
 	"errors"
 	"os"
 	"time"
@@ -67,7 +66,7 @@ func (c *Controller) Run() error {
 	to := c.BatchSize
 	batch := 1
 
-	input := csv.Parse(bufio.NewReader(c.Input))
+	input := csv.Parse(c.Input)
 	input.Headers = append(input.Headers, "status")
 	if c.RecordHeaders {
 		input.Headers = append(input.Headers, "headers")

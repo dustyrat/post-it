@@ -117,6 +117,7 @@ func (w *worker) call(record csv.Record) {
 
 	response, err := w.client.Do(w.method, _url, http.Header{}, body)
 	if err != nil {
+		w.stats.Increment(0)
 		entry.Error = err
 		return
 	}

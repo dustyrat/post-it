@@ -86,9 +86,15 @@ func (s *Stats) Print() {
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.AlignRight|tabwriter.Debug)
 	for _, code := range codes {
-		headers += fmt.Sprintf("%s: %d \t", http.StatusText(code), code)
-		line += "%d \t"
-		values = append(values, s.Responses[code])
+		if code != 0 {
+			headers += fmt.Sprintf("%s: %d \t", http.StatusText(code), code)
+			line += "%d \t"
+			values = append(values, s.Responses[code])
+		} else {
+			headers += "Errors \t"
+			line += "%d \t"
+			values = append(values, s.Responses[code])
+		}
 	}
 
 	fmt.Fprintln(w, headers)

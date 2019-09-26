@@ -22,13 +22,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"post-it/pkg/client"
-	"post-it/pkg/csv"
 	"regexp"
 	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/DustyRat/post-it/pkg/client"
+	"github.com/DustyRat/post-it/pkg/csv"
 
 	"github.com/cheggaaa/pb/v3"
 	log "github.com/sirupsen/logrus"

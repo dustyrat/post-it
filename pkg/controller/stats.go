@@ -19,11 +19,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"post-it/pkg/csv"
 	"sort"
 	"strconv"
 	"sync"
 	"text/tabwriter"
+
+	"github.com/DustyRat/post-it/pkg/csv"
 )
 
 type Stats struct {

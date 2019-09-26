@@ -5,11 +5,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"post-it/pkg/client"
-	"post-it/pkg/controller"
-	"post-it/pkg/csv"
 	"strings"
 	"time"
+
+	"github.com/DustyRat/post-it/pkg/client"
+	"github.com/DustyRat/post-it/pkg/controller"
+	"github.com/DustyRat/post-it/pkg/csv"
 
 	"github.com/spf13/cobra"
 )

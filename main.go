@@ -16,7 +16,7 @@ limitations under the License.
 package main
 
 import (
-	"post-it/cmd"
+	"github.com/DustyRat/post-it/cmd"
 )
 
 func main() {

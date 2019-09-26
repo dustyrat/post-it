@@ -19,9 +19,10 @@ import (
 	"bufio"
 	"errors"
 	"os"
-	"post-it/pkg/client"
-	"post-it/pkg/csv"
 	"time"
+
+	"github.com/DustyRat/post-it/pkg/client"
+	"github.com/DustyRat/post-it/pkg/csv"
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/goinggo/work"

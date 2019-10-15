@@ -16,15 +16,19 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"errors"
 	"os"
 	"time"
 
+	"github.com/goinggo/work"
+
+	"github.com/vbauerster/mpb/decor"
+
+	"github.com/vbauerster/mpb"
+
 	"github.com/DustyRat/post-it/pkg/client"
 	"github.com/DustyRat/post-it/pkg/csv"
-
-	"github.com/cheggaaa/pb/v3"
-	"github.com/goinggo/work"
 )
 
 type Controller struct {
@@ -34,10 +38,9 @@ type Controller struct {
 	headers []string
 	chunks  [][]csv.Record
 
-	WorkerPool *work.Pool
-	BatchSize  int
-	Routines   int
-	Stats      *Stats
+	BatchSize int
+	Routines  int
+	Stats     *Stats
 
 	RequestBodyColumn string
 	RecordHeaders     bool
@@ -80,13 +83,27 @@ func (c *Controller) Run() error {
 	c.Output.Flush()
 
 	total := len(input.Records)
-	progress := pb.Full.Start(total)
-	defer progress.Finish()
-
 	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
 	}
+	progress := mpb.New(mpb.WithContext(context.Background()))
+
+	bar := progress.AddBar(int64(total),
+		mpb.BarID(0),
+		mpb.PrependDecorators(
+			decor.Name("Total", decor.WCSyncSpaceR),
+			decor.Counters(0, "%d / %d", decor.WCSyncSpaceR),
+		),
+		mpb.AppendDecorators(
+			decor.OnComplete(decor.Percentage(decor.WCSyncSpaceR), "complete"),
+			decor.AverageSpeed(0, "% .1f/s", decor.WCSyncSpaceR),
+			decor.Name("Elapsed:", decor.WCSyncSpaceR),
+			decor.Elapsed(decor.ET_STYLE_GO, decor.WCSyncSpaceR),
+			decor.Name("ETA:", decor.WCSyncSpaceR),
+			decor.AverageETA(decor.ET_STYLE_GO, decor.WCSyncSpaceR),
+		),
+	)
 
 	var chunks [][]csv.Record
 	for c.BatchSize < len(input.Records) {
@@ -105,6 +122,7 @@ func (c *Controller) Run() error {
 			to:                to,
 			stats:             c.Stats,
 			progress:          progress,
+			bar:               bar,
 			status:            c.Status,
 			responseType:      c.ResponseType,
 			recordBody:        c.RecordBody,
@@ -119,6 +137,7 @@ func (c *Controller) Run() error {
 	}
 
 	// wait for all worker Routines to finish doing their work
+	progress.Wait()
 	wp.Shutdown()
 	return nil
 }

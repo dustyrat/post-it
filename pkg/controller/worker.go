@@ -28,10 +28,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/vbauerster/mpb/decor"
+
+	"github.com/vbauerster/mpb"
+
 	"github.com/DustyRat/post-it/pkg/client"
 	"github.com/DustyRat/post-it/pkg/csv"
 
-	"github.com/cheggaaa/pb/v3"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -65,15 +68,29 @@ type worker struct {
 	batch int
 
 	stats    *Stats
-	progress *pb.ProgressBar
+	progress *mpb.Progress
+	bar      *mpb.Bar
 }
 
 func (w *worker) Work(id int) {
 	w.id = id
 	defer w.done()
+	bar := w.progress.AddBar(int64(len(w.chunk)),
+		mpb.BarRemoveOnComplete(),
+		mpb.BarID(id),
+		mpb.BarPriority(id),
+		mpb.PrependDecorators(
+			decor.Name(fmt.Sprintf("Worker: %d", id), decor.WCSyncSpaceR),
+			decor.Counters(0, "%d / %d", decor.WCSyncSpaceR),
+		),
+		mpb.AppendDecorators(
+			decor.Percentage(decor.WCSyncSpaceR),
+			decor.AverageSpeed(0, "% .1f/s", decor.WCSyncSpaceR),
+		),
+	)
 
 	for i := range w.chunk {
-		w.call(w.chunk[i])
+		w.call(bar, w.chunk[i])
 	}
 }
 
@@ -94,8 +111,9 @@ func (w *worker) done() {
 	}
 }
 
-func (w *worker) call(record csv.Record) {
-	defer w.progress.Increment()
+func (w *worker) call(bar *mpb.Bar, record csv.Record) {
+	defer bar.Increment()
+	defer w.bar.Increment()
 	entry := Entry{Record: record}
 	defer w.write(&entry)
 

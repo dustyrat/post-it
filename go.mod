@@ -15,6 +15,7 @@ require (
 	github.com/spf13/viper v1.4.0 // indirect
 	github.com/spkg/bom v0.0.0-20160624110644-59b7046e48ad
 	github.com/stretchr/testify v1.3.0 // indirect
+	github.com/vbauerster/mpb v3.4.0+incompatible
 	golang.org/x/sys v0.0.0-20190924154521-2837fb4f24fe // indirect
 	golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72 // indirect
 )

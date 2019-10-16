@@ -23,8 +23,6 @@ import (
 
 	"github.com/goinggo/work"
 
-	"github.com/vbauerster/mpb/decor"
-
 	"github.com/vbauerster/mpb"
 
 	"github.com/DustyRat/post-it/pkg/client"
@@ -65,10 +63,6 @@ func (c *Controller) Run() error {
 		c.Stats.Print()
 	}()
 
-	from := 1
-	to := c.BatchSize
-	batch := 1
-
 	input := csv.Parse(c.Input)
 	input.Headers = append(input.Headers, "status")
 	if c.RecordHeaders {
@@ -82,28 +76,14 @@ func (c *Controller) Run() error {
 	c.Output.Write(input.Headers)
 	c.Output.Flush()
 
-	total := len(input.Records)
 	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
 	}
+
 	progress := mpb.New(mpb.WithContext(context.Background()))
 
-	bar := progress.AddBar(int64(total),
-		mpb.BarID(0),
-		mpb.PrependDecorators(
-			decor.Name("Total", decor.WCSyncSpaceR),
-			decor.Counters(0, "%d / %d", decor.WCSyncSpaceR),
-		),
-		mpb.AppendDecorators(
-			decor.OnComplete(decor.Percentage(decor.WCSyncSpaceR), "complete"),
-			decor.AverageSpeed(0, "% .1f/s", decor.WCSyncSpaceR),
-			decor.Name("Elapsed:", decor.WCSyncSpaceR),
-			decor.Elapsed(decor.ET_STYLE_GO, decor.WCSyncSpaceR),
-			decor.Name("ETA:", decor.WCSyncSpaceR),
-			decor.AverageETA(decor.ET_STYLE_GO, decor.WCSyncSpaceR),
-		),
-	)
+	pool := NewPool(wp, c.Client, c.Method, c.Url, c.Stats, c.Output, progress)
 
 	var chunks [][]csv.Record
 	for c.BatchSize < len(input.Records) {
@@ -111,33 +91,19 @@ func (c *Controller) Run() error {
 	}
 	chunks = append(chunks, input.Records)
 	for i := range chunks {
-		w := worker{
-			writer:            c.Output,
-			client:            c.Client,
-			method:            c.Method,
-			url:               c.Url,
-			chunk:             chunks[i],
-			batch:             batch,
-			from:              from,
-			to:                to,
-			stats:             c.Stats,
-			progress:          progress,
-			bar:               bar,
-			status:            c.Status,
-			responseType:      c.ResponseType,
-			recordBody:        c.RecordBody,
-			recordHeaders:     c.RecordHeaders,
-			requestBodyColumn: c.RequestBodyColumn,
-		}
-		wp.Run(&w)
-
-		from = from + c.BatchSize
-		to = to + c.BatchSize
-		batch++
+		pool.NewWorker(
+			chunks[i],
+			Flags{
+				Body:    c.RecordBody,
+				Headers: c.RecordHeaders,
+			},
+			Keys{
+				Body:         c.RequestBodyColumn,
+				Status:       c.Status,
+				ResponseType: c.ResponseType,
+			},
+		)
 	}
-
-	// wait for all worker Routines to finish doing their work
-	progress.Wait()
-	wp.Shutdown()
+	pool.Run()
 	return nil
 }

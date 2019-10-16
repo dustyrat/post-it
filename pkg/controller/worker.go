@@ -27,6 +27,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+
+	"github.com/goinggo/work"
 
 	"github.com/vbauerster/mpb/decor"
 
@@ -48,39 +51,84 @@ func init() {
 	status_ddd = regexp.MustCompile("\\d{3}")
 }
 
-type worker struct {
-	id     int
+type Pool struct {
 	client *client.Client
 	method string
-	url    string
-	chunk  []csv.Record
+	rawurl string
 
-	requestBodyColumn string
-	status            string
-	responseType      string
-	recordHeaders     bool
-	recordBody        bool
-
-	writer *csv.Writer
-
-	to    int
-	from  int
-	batch int
-
-	stats    *Stats
+	writer   *csv.Writer
 	progress *mpb.Progress
 	bar      *mpb.Bar
+	bars     map[int]*mpb.Bar
+	stats    *Stats
+
+	workerPool *work.Pool
+	workers    []*worker
+	total      int64
+
+	mutex *sync.Mutex
 }
 
-func (w *worker) Work(id int) {
-	w.id = id
-	defer w.done()
-	bar := w.progress.AddBar(int64(len(w.chunk)),
+func NewPool(workerPool *work.Pool, client *client.Client, method, rawurl string, stats *Stats, writer *csv.Writer, progress *mpb.Progress) *Pool {
+	return &Pool{
+		client:   client,
+		method:   method,
+		rawurl:   rawurl,
+		stats:    stats,
+		writer:   writer,
+		progress: progress,
+		bar: progress.AddBar(0,
+			mpb.BarID(0),
+			mpb.PrependDecorators(
+				decor.Name("Total", decor.WCSyncSpaceR),
+				decor.Counters(0, "%d / %d", decor.WCSyncSpaceR),
+			),
+			mpb.AppendDecorators(
+				decor.OnComplete(decor.Percentage(decor.WCSyncSpaceR), "complete"),
+				decor.AverageSpeed(0, "% .1f/s", decor.WCSyncSpaceR),
+				decor.Name("Elapsed:", decor.WCSyncSpaceR),
+				decor.Elapsed(decor.ET_STYLE_GO, decor.WCSyncSpaceR),
+				decor.Name("ETA:", decor.WCSyncSpaceR),
+				decor.AverageETA(decor.ET_STYLE_GO, decor.WCSyncSpaceR),
+			),
+		),
+		bars:       map[int]*mpb.Bar{},
+		workerPool: workerPool,
+		mutex:      &sync.Mutex{},
+	}
+}
+
+func (p *Pool) NewWorker(chunk []csv.Record, flags Flags, keys Keys) *worker {
+	p.mutex.Lock()
+	p.total += int64(len(chunk))
+	p.bar.SetTotal(p.total, false)
+	w := &worker{pool: p, progress: p.bar, chunk: chunk, flags: flags, keys: keys}
+	p.workers = append(p.workers, w)
+	p.mutex.Unlock()
+	return w
+}
+
+func (p *Pool) Run() {
+	for _, worker := range p.workers {
+		p.workerPool.Run(worker)
+	}
+	p.workerPool.Shutdown()
+	p.progress.Wait()
+}
+
+func (p *Pool) addBar(bar *mpb.Bar) {
+	p.mutex.Lock()
+	p.bars[bar.ID()] = bar
+	p.mutex.Unlock()
+}
+
+func (p *Pool) getBar(id int, total int64) *mpb.Bar {
+	bar := p.progress.AddBar(total,
 		mpb.BarRemoveOnComplete(),
 		mpb.BarID(id),
 		mpb.BarPriority(id),
 		mpb.PrependDecorators(
-			decor.Name(fmt.Sprintf("Worker: %d", id), decor.WCSyncSpaceR),
+			decor.Name(fmt.Sprintf("Worker#%d", id), decor.WCSyncSpaceR),
 			decor.Counters(0, "%d / %d", decor.WCSyncSpaceR),
 		),
 		mpb.AppendDecorators(
@@ -88,6 +136,38 @@ func (w *worker) Work(id int) {
 			decor.AverageSpeed(0, "% .1f/s", decor.WCSyncSpaceR),
 		),
 	)
+	p.addBar(bar)
+	return bar
+}
+
+type worker struct {
+	id    int
+	chunk []csv.Record
+
+	flags Flags
+	keys  Keys
+
+	pool     *Pool
+	progress *mpb.Bar
+}
+
+type Flags struct {
+	Headers bool
+	Body    bool
+}
+
+type Keys struct {
+	Body         string
+	Status       string
+	ResponseType string
+}
+
+func (w *worker) Work(id int) {
+	w.id = id
+	defer w.done()
+
+	var bar *mpb.Bar
+	//bar := w.pool.getBar(id, int64(len(w.chunk)))
 
 	for i := range w.chunk {
 		w.call(bar, w.chunk[i])
@@ -112,12 +192,19 @@ func (w *worker) done() {
 }
 
 func (w *worker) call(bar *mpb.Bar, record csv.Record) {
-	defer bar.Increment()
-	defer w.bar.Increment()
+	defer func() {
+		if bar != nil {
+			bar.Increment()
+		}
+		if w.progress != nil {
+			w.progress.Increment()
+		}
+	}()
+
 	entry := Entry{Record: record}
 	defer w.write(&entry)
 
-	rawurl := w.url
+	rawurl := w.pool.rawurl
 	for k, v := range record.Fields {
 		rawurl = strings.Replace(rawurl, fmt.Sprintf("{%s}", k), v, 1)
 	}
@@ -129,60 +216,64 @@ func (w *worker) call(bar *mpb.Bar, record csv.Record) {
 	}
 
 	var body io.Reader
-	if requestBody, ok := record.Fields[w.requestBodyColumn]; ok {
+	if requestBody, ok := record.Fields[w.keys.Body]; ok {
 		body = bytes.NewBuffer([]byte(requestBody))
 	}
 
-	response, err := w.client.Do(w.method, _url, http.Header{}, body)
+	response, err := w.pool.client.Do(w.pool.method, _url, http.Header{}, body)
 	if err != nil {
-		w.stats.Increment(0)
+		w.pool.stats.Increment(0)
 		entry.Error = err
 		return
 	}
 
-	w.stats.Increment(response.StatusCode)
+	w.pool.stats.Increment(response.StatusCode)
 	entry.Status = response.StatusCode
 
-	if w.recordHeaders {
+	if w.flags.Headers {
 		entry.Headers = headerToString(response.Header)
 	}
 
-	if w.recordBody {
+	if w.flags.Body {
 		entry.ResponseBody = string(response.Body)
 	}
 }
 
 func (w *worker) write(entry *Entry) {
-	defer w.writer.Flush()
-	switch w.responseType {
+	if w.pool.writer == nil {
+		return
+	}
+
+	defer w.pool.writer.Flush()
+	switch w.keys.ResponseType {
 	case "all":
-		w.writer.Write(entry.Strings())
+		w.pool.writer.Write(entry.Strings())
 	case "error":
 		if entry.Error != nil {
-			w.writer.Write(entry.Strings())
+			w.pool.writer.Write(entry.Strings())
 		}
 	case "status":
-		if w.status == "any" {
-			w.writer.Write(entry.Strings())
-		} else if status_dxx.MatchString(w.status) {
-			status, _ := strconv.Atoi(strings.Replace(w.status, "xx", "00", 1))
+		if w.keys.Status == "any" {
+			w.pool.writer.Write(entry.Strings())
+		} else if status_dxx.MatchString(w.keys.Status) {
+			status, _ := strconv.Atoi(strings.Replace(w.keys.Status, "xx", "00", 1))
 			if status > 0 {
 				a := status
 				b := a + 100
 				if client.InRange(entry.Status, a, b) {
-					w.writer.Write(entry.Strings())
+					w.pool.writer.Write(entry.Strings())
 				}
 			} else {
 				a := -status
 				b := a + 100
 				if !client.InRange(entry.Status, a, b) {
-					w.writer.Write(entry.Strings())
+					w.pool.writer.Write(entry.Strings())
 				}
 			}
-		} else if status_ddd.MatchString(w.status) {
-			status, _ := strconv.Atoi(w.status)
+		} else if status_ddd.MatchString(w.keys.Status) {
+			status, _ := strconv.Atoi(w.keys.Status)
 			if entry.Status == status {
-				w.writer.Write(entry.Strings())
+				w.pool.writer.Write(entry.Strings())
 			}
 		}
 	}

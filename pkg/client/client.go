@@ -47,6 +47,7 @@ type Response struct {
 	TransferEncoding []string
 	Uncompressed     bool
 	Trailer          http.Header
+	Duration         time.Duration
 }
 
 // Config represents the configuration of the api package and all of its structs, methods and functions. These values are
@@ -193,9 +194,14 @@ func (c *Client) do(request *http.Request) (*Response, error) {
 // canceled.
 // handle wraps http.Client.Do
 func (c *Client) handle(request *http.Request) (*Response, error) {
+	start := time.Now()
 	resp, err := c.HttpClient.Do(request)
 	if err != nil {
-		return nil, err
+		if err, ok := err.(*url.Error); ok {
+			return nil, err.Unwrap()
+		} else {
+			return nil, err
+		}
 	}
 	defer resp.Body.Close()
 
@@ -215,6 +221,7 @@ func (c *Client) handle(request *http.Request) (*Response, error) {
 		TransferEncoding: resp.TransferEncoding,
 		Uncompressed:     resp.Uncompressed,
 		Trailer:          resp.Trailer,
+		Duration:         time.Now().Sub(start),
 	}
 	return &response, nil
 }

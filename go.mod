@@ -6,6 +6,7 @@ go 1.12
 
 require (
 	github.com/VividCortex/ewma v1.1.1 // indirect
+	github.com/codesenberg/concurrent v0.0.0-20180531114123-64560cfcf964
 	github.com/goinggo/work v0.0.0-20150417195554-e2c4d06662b4
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect

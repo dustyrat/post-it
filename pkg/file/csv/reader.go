@@ -16,10 +16,14 @@ limitations under the License.
 package csv
 
 import (
+	"bytes"
 	"encoding/csv"
 	"io"
 	"log"
+	"net/http"
 	"os"
+
+	"github.com/DustyRat/post-it/pkg/client"
 
 	"github.com/spkg/bom"
 )
@@ -31,10 +35,15 @@ type Csv struct {
 
 type Record struct {
 	Headers []string
+	Body    []byte
 	Fields  map[string]string
 }
 
-func Parse(file *os.File) Csv {
+func (r *Record) ToRequest(method, rawurl string) (*client.Request, error) {
+	return client.NewRequest(method, rawurl, http.Header{}, bytes.NewBuffer(r.Body), r.Fields)
+}
+
+func Parse(file *os.File, body string) Csv {
 	if file == nil {
 		return Csv{}
 	}
@@ -57,6 +66,9 @@ func Parse(file *os.File) Csv {
 			record := Record{Headers: headers, Fields: make(map[string]string)}
 			for i := range headers {
 				record.Fields[headers[i]] = line[i]
+			}
+			if b, ok := record.Fields[body]; ok {
+				record.Body = []byte(b)
 			}
 			records = append(records, record)
 		}

@@ -15,29 +15,51 @@ limitations under the License.
 */
 package method
 
-//import (
-//	"github.com/spf13/cobra"
-//)
-//
-//// postCmd represents the POST command
-//var postCmd = &cobra.Command{
-//	Use:   "POST",
-//	Short: "The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.",
-//	Long:  `The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.`,
-//	PreRun: func(cmd *cobra.Command, args []string) {
-//		// CONTROLLER
-//		//ctrl = getController(http.MethodPost)
-//	},
-//	Run: func(cmd *cobra.Command, args []string) {
-//		//defer ctrl.Input.Close()
-//		//err := ctrl.Run()
-//		//if err != nil {
-//		//	log.Fatal(err)
-//		//}
-//	},
-//}
-//
-//func init() {
-//	rootCmd.AddCommand(postCmd)
-//	postCmd.PersistentFlags().StringVar(&body, "body-column", "request_body", "Column name to use for the request body.")
-//}
+import (
+	"errors"
+	"log"
+	"net/http"
+
+	"github.com/DustyRat/post-it/pkg/client"
+	"github.com/DustyRat/post-it/pkg/controller"
+	"github.com/DustyRat/post-it/pkg/file"
+	"github.com/DustyRat/post-it/pkg/options"
+	"github.com/spf13/cobra"
+)
+
+func NewCmdPost(options *options.Options) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "POST",
+		Aliases: []string{"post"},
+		Short:   "The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.",
+		Long:    `The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.`,
+		Example: "post-it POST -u http://localhost:3000/path/{column_name}",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return errors.New("missing url")
+			}
+			return nil
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			options.RawUrl = args[0]
+			options.Client.Headers = client.ParseHeaders(options.Headers)
+			clt, err := client.NewClient(options.Client)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			ctrl := controller.Controller{
+				Client:   clt,
+				Routines: options.Connections,
+			}
+
+			requests := file.ParseFile(options.Input, http.MethodPost, options.RawUrl, options.RequestBody)
+			err = ctrl.Run(requests)
+			if err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	return cmd
+}

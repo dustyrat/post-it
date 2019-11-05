@@ -5,26 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/DustyRat/post-it/pkg/controller"
+	"github.com/DustyRat/post-it/cmd/method"
+	"github.com/DustyRat/post-it/pkg/options"
 	"github.com/spf13/cobra"
-)
-
-var (
-	ctrl               controller.Controller
-	body               string
-	inputFile          string
-	outputFile         string
-	batchSize          int
-	connections        int
-	rawUrl             string
-	headers            []string
-	responseType       string
-	responseStatus     string
-	recordBody         bool
-	recordHeaders      bool
-	timeout            time.Duration
-	idleTimeout        time.Duration
-	insecureSkipVerify bool
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -39,30 +22,28 @@ TODO Long Description`,
 		// has an action associated with it:
 		//Run: func(cmd *cobra.Command, args []string) { },
 	}
-	cmd.AddCommand(NewCmdBatch())
+
+	options := options.Options{}
+	cmd.PersistentFlags().StringVarP(&options.Input, "input", "i", "input.csv", "Input File")
+	cmd.PersistentFlags().StringVarP(&options.Output, "output", "o", "output.csv", "Output File")
+
+	cmd.PersistentFlags().StringArrayVar(&options.Headers, "header", []string{}, "HTTP headers to use (\"K: V\")")
+	// cmd.PersistentFlags().StringVarP(&options.RawUrl, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path/{column_name}' if input file is specified")
+	// cmd.MarkPersistentFlagRequired("url")
+
+	cmd.PersistentFlags().IntVarP(&options.Connections, "connections", "c", 10, "connections")
+	cmd.PersistentFlags().DurationVarP(&options.Client.Timeout, "timeout", "t", 3000*time.Millisecond, "Connection timeout")
+	cmd.PersistentFlags().DurationVar(&options.Client.IdleConnTimeout, "idle-timeout", 500*time.Millisecond, "Idle Connection timeout")
+	cmd.PersistentFlags().BoolVar(&options.Client.InsecureSkipVerify, "insecure-skip-verify", true, "Insecure Skip Verify")
+
+	cmd.AddCommand(method.NewCmdDelete(&options))
+	cmd.AddCommand(method.NewCmdGet(&options))
+	cmd.AddCommand(method.NewCmdHead(&options))
+	cmd.AddCommand(method.NewCmdPatch(&options))
+	cmd.AddCommand(method.NewCmdPost(&options))
+	cmd.AddCommand(method.NewCmdPut(&options))
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-func init() {
-	//rootCmd.PersistentFlags().StringVarP(&inputFile, "input", "i", "input.csv", "Input File")
-	//rootCmd.PersistentFlags().StringVarP(&outputFile, "output", "o", "output.csv", "Output File")
-	//
-	//rootCmd.PersistentFlags().StringVar(&responseType, "response-type", "", "Response type to output. eg: all, error, status")
-	//rootCmd.PersistentFlags().StringVar(&responseStatus, "response-status", "any", "Response status to output. eg: any, 2xx, -2xx (non 2xx statuses), 4xx, 5xx, 200, 301, 404, 503...")
-	//rootCmd.PersistentFlags().BoolVar(&recordBody, "record-body", false, "Output body")
-	//rootCmd.PersistentFlags().BoolVar(&recordHeaders, "record-headers", false, "Output headers")
-	//
-	//rootCmd.PersistentFlags().IntVarP(&batchSize, "batch", "b", 100, "Batch Size")
-	//
-	//rootCmd.PersistentFlags().StringVarP(&rawUrl, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path/{column_name}' if input file is specified")
-	//rootCmd.PersistentFlags().StringArrayVar(&headers, "header", []string{}, "HTTP headers to use (\"K: V\")")
-	//rootCmd.PersistentFlags().IntVarP(&connections, "connections", "c", 10, "connections")
-	//rootCmd.PersistentFlags().DurationVarP(&timeout, "timeout", "t", 3000*time.Millisecond, "Connection timeout")
-	//rootCmd.PersistentFlags().DurationVar(&idleTimeout, "idle-timeout", 500*time.Millisecond, "Idle Connection timeout")
-	//rootCmd.PersistentFlags().BoolVar(&insecureSkipVerify, "insecure-skip-verify", true, "Insecure Skip Verify")
-	//
-	//rootCmd.MarkPersistentFlagRequired("url")
 }

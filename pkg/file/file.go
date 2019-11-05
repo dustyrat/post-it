@@ -8,24 +8,18 @@ import (
 	"github.com/DustyRat/post-it/pkg/file/csv"
 )
 
-func ParseFile(file, method, rawUrl string, batchSize int) [][]*client.Request {
+func ParseFile(file, method, rawUrl, body string) []*client.Request {
 	input, err := os.Open(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer input.Close()
 
-	csvFile := csv.Parse(input, "")
+	csvFile := csv.Parse(input, body)
 	requests := make([]*client.Request, 0)
 	for i := range csvFile.Records {
 		request, _ := csvFile.Records[i].ToRequest(method, rawUrl)
 		requests = append(requests, request)
 	}
-
-	var chunks [][]*client.Request
-	for batchSize < len(requests) {
-		requests, chunks = requests[batchSize:], append(chunks, requests[0:batchSize:batchSize])
-	}
-	chunks = append(chunks, requests)
-	return chunks
+	return requests
 }

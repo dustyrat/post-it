@@ -15,29 +15,51 @@ limitations under the License.
 */
 package method
 
-//import (
-//	"github.com/spf13/cobra"
-//)
-//
-//// patchCmd represents the PATCH command
-//var patchCmd = &cobra.Command{
-//	Use:   "PATCH",
-//	Short: "The PATCH method is used to apply partial modifications to a resource.",
-//	Long:  `The PATCH method is used to apply partial modifications to a resource.`,
-//	PreRun: func(cmd *cobra.Command, args []string) {
-//		// CONTROLLER
-//		//ctrl = getController(http.MethodPatch)
-//	},
-//	Run: func(cmd *cobra.Command, args []string) {
-//		//defer ctrl.Input.Close()
-//		//err := ctrl.Run()
-//		//if err != nil {
-//		//	log.Fatal(err)
-//		//}
-//	},
-//}
-//
-//func init() {
-//	rootCmd.AddCommand(patchCmd)
-//	patchCmd.PersistentFlags().StringVar(&body, "body-column", "request_body", "Column name to use for the request body.")
-//}
+import (
+	"errors"
+	"log"
+	"net/http"
+
+	"github.com/DustyRat/post-it/pkg/client"
+	"github.com/DustyRat/post-it/pkg/controller"
+	"github.com/DustyRat/post-it/pkg/file"
+	"github.com/DustyRat/post-it/pkg/options"
+	"github.com/spf13/cobra"
+)
+
+func NewCmdPatch(options *options.Options) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "PATCH",
+		Aliases: []string{"patch"},
+		Short:   "The PATCH method is used to apply partial modifications to a resource.",
+		Long:    `The PATCH method is used to apply partial modifications to a resource.`,
+		Example: "post-it PATCH -u http://localhost:3000/path/{column_name}",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return errors.New("missing url")
+			}
+			return nil
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			options.RawUrl = args[0]
+			options.Client.Headers = client.ParseHeaders(options.Headers)
+			clt, err := client.NewClient(options.Client)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			ctrl := controller.Controller{
+				Client:   clt,
+				Routines: options.Connections,
+			}
+
+			requests := file.ParseFile(options.Input, http.MethodPatch, options.RawUrl, options.RequestBody)
+			err = ctrl.Run(requests)
+			if err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	return cmd
+}

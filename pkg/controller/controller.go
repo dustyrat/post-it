@@ -52,22 +52,19 @@ type Controller struct {
 	//Output *csv.Writer
 }
 
-func (c *Controller) reset() {
+func (c *Controller) Run(requests []*client.Request) error {
 	c.Stats = stats.NewStats()
-}
-
-func (c *Controller) Run(chunks [][]*client.Request) error {
-	c.reset()
 	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
 	}
 
 	progress := mpb.New(mpb.WithContext(context.Background()))
-	pool := worker.NewPool(wp, c.Client, c.Stats, progress)
-	for i := range chunks {
-		pool.NewWorker(chunks[i])
+	pool := worker.NewPool(wp, c.Client, c.Stats, progress, int64(len(requests)))
+	for i := range requests {
+		pool.NewWorker(requests[i])
 	}
 	pool.Run()
+	c.Stats.Latencies.Print()
 	return nil
 }

@@ -38,8 +38,8 @@ func init() {
 }
 
 type worker struct {
-	id       int
-	requests []*client.Request
+	id      int
+	request *client.Request
 
 	pool     *Pool
 	progress *mpb.Bar
@@ -48,10 +48,7 @@ type worker struct {
 func (w *worker) Work(id int) {
 	w.id = id
 	defer w.done()
-
-	for i := range w.requests {
-		w.work(w.requests[i])
-	}
+	w.work(w.request)
 }
 
 func (w *worker) done() {
@@ -81,17 +78,6 @@ func (w *worker) work(request *client.Request) {
 	request.Response = response
 	w.pool.stats.Codes.Increment(response.StatusCode)
 	w.pool.stats.Latencies.Increment(response.Duration)
-
-	//var body io.Reader
-	////if requestBody, ok := record.Fields[w.keys.Body]; ok {
-	////	body = bytes.NewBuffer([]byte(requestBody))
-	////}
-	//
-	//request, err := client.NewRequest(w.pool.method, w.pool.rawurl, http.Header{}, body, record.Fields)
-	//if err != nil {
-	//	w.pool.stats.Errors.Increment(err)
-	//	return
-	//}
 }
 
 //func (w *worker) write(entry *stats.Entry) {

@@ -20,6 +20,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/DustyRat/post-it/pkg/file/csv"
+
 	"github.com/DustyRat/post-it/pkg/file"
 	"github.com/DustyRat/post-it/pkg/options"
 
@@ -50,13 +52,23 @@ func NewCmdGet(options *options.Options) *cobra.Command {
 				log.Fatal(err)
 			}
 
-			ctrl := controller.Controller{
-				Client:   clt,
-				Routines: options.Connections,
+			var writer *csv.Writer
+			if options.Output != "" {
+				writer, err = csv.NewWriter(options.Output)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 
-			requests := file.ParseFile(options.Input, http.MethodGet, options.RawUrl, options.RequestBody)
-			err = ctrl.Run(requests)
+			ctrl := controller.Controller{
+				Options:  options,
+				Client:   clt,
+				Routines: options.Connections,
+				Writer:   writer,
+			}
+
+			headers, requests := file.ParseFile(options.Input, http.MethodGet, options.RawUrl, options.RequestBody)
+			err = ctrl.Run(headers, requests)
 			if err != nil {
 				log.Fatal(err)
 			}

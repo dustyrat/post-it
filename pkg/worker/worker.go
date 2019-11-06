@@ -17,8 +17,17 @@ package worker
 
 import (
 	"errors"
+	"fmt"
+	"net/http"
 	"regexp"
 	"runtime/debug"
+	"sort"
+	"strconv"
+	"strings"
+
+	"github.com/DustyRat/post-it/pkg/options"
+
+	"github.com/DustyRat/post-it/pkg/file/csv"
 
 	"github.com/DustyRat/post-it/pkg/client"
 
@@ -39,16 +48,104 @@ func init() {
 
 type worker struct {
 	id      int
+	record  csv.Record
 	request *client.Request
 
 	pool     *Pool
 	progress *mpb.Bar
 }
 
+type entry struct {
+	record  csv.Record
+	request *client.Request
+	err     error
+}
+
+func (e *entry) Strings(flags options.Flags) []string {
+	out := make([]string, 0)
+	for _, header := range e.record.Headers {
+		if value, ok := e.record.Fields[header]; ok {
+			out = append(out, value)
+		} else {
+			out = append(out, "")
+		}
+	}
+	out = append(out, strconv.Itoa(e.request.Response.StatusCode))
+
+	if flags.Headers {
+		out = append(out, toString(e.request.Response.Header))
+	}
+
+	if flags.Body {
+		out = append(out, string(e.request.Response.Body))
+	}
+
+	if e.err != nil {
+		out = append(out, e.err.Error())
+	} else {
+		out = append(out, "")
+	}
+	return out
+}
+
 func (w *worker) Work(id int) {
 	w.id = id
-	defer w.done()
-	w.work(w.request)
+	entry := &entry{record: w.record, request: w.request}
+	defer func() {
+		w.write(entry)
+		w.progress.Increment()
+		w.done()
+	}()
+
+	response, err := w.pool.client.Do(w.request.Method, w.request.URL, w.request.Header, w.request.Body)
+	if err != nil {
+		entry.err = err
+		w.pool.stats.Errors.Increment(err)
+		return
+	}
+	w.request.Response = response
+	w.pool.stats.Codes.Increment(response.StatusCode)
+	w.pool.stats.Latencies.Increment(response.Duration)
+}
+
+func (w *worker) write(entry *entry) {
+	if w.pool.writer == nil {
+		return
+	}
+	defer w.pool.writer.Flush()
+
+	switch w.pool.options.Flags.Type {
+	case "all":
+		w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+	case "error":
+		if entry.err != nil {
+			w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+		}
+	case "status":
+		if w.pool.options.Flags.Status == "any" {
+			w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+		} else if status_dxx.MatchString(w.pool.options.Flags.Status) {
+			status, _ := strconv.Atoi(strings.Replace(w.pool.options.Flags.Status, "xx", "00", 1))
+			if status > 0 {
+				a := status
+				b := a + 100
+				if client.InRange(entry.request.Response.StatusCode, a, b) {
+					w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+				}
+			} else {
+				a := -status
+				b := a + 100
+				if !client.InRange(entry.request.Response.StatusCode, a, b) {
+					w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+				}
+			}
+		} else if status_ddd.MatchString(w.pool.options.Flags.Status) {
+			status, _ := strconv.Atoi(w.pool.options.Flags.Status)
+			if entry.request.Response.StatusCode == status {
+				w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+			}
+		}
+	}
 }
 
 func (w *worker) done() {
@@ -68,81 +165,29 @@ func (w *worker) done() {
 	}
 }
 
-func (w *worker) work(request *client.Request) {
-	defer w.progress.Increment()
-	response, err := w.pool.client.Do(request.Method, request.URL, request.Header, request.Body)
-	if err != nil {
-		w.pool.stats.Errors.Increment(err)
-		return
+func toString(headers http.Header) string {
+	keys := make([]string, 0)
+	for key := range headers {
+		keys = append(keys, key)
 	}
-	request.Response = response
-	w.pool.stats.Codes.Increment(response.StatusCode)
-	w.pool.stats.Latencies.Increment(response.Duration)
+	sort.Strings(keys)
+
+	str := ""
+	for i, key := range keys {
+		str += fmt.Sprintf("%s: ", key)
+		values := headers[key]
+		for j, value := range values {
+			str += value
+			if j < len(values)-1 {
+				str += ", "
+			}
+		}
+
+		if i < len(headers)-1 {
+			str += "; "
+		} else {
+			str += ";"
+		}
+	}
+	return str
 }
-
-//func (w *worker) write(entry *stats.Entry) {
-//	if w.pool.writer == nil {
-//		return
-//	}
-//
-//	defer w.pool.writer.Flush()
-//switch w.keys.ResponseType {
-//case "all":
-//	w.pool.writer.Write(entry.Strings())
-//case "error":
-//	if entry.Error != nil {
-//		w.pool.writer.Write(entry.Strings())
-//	}
-//case "status":
-//	if w.keys.Status == "any" {
-//		w.pool.writer.Write(entry.Strings())
-//	} else if status_dxx.MatchString(w.keys.Status) {
-//		status, _ := strconv.Atoi(strings.Replace(w.keys.Status, "xx", "00", 1))
-//		if status > 0 {
-//			a := status
-//			b := a + 100
-//			if client.InRange(entry.Status, a, b) {
-//				w.pool.writer.Write(entry.Strings())
-//			}
-//		} else {
-//			a := -status
-//			b := a + 100
-//			if !client.InRange(entry.Status, a, b) {
-//				w.pool.writer.Write(entry.Strings())
-//			}
-//		}
-//	} else if status_ddd.MatchString(w.keys.Status) {
-//		status, _ := strconv.Atoi(w.keys.Status)
-//		if entry.Status == status {
-//			w.pool.writer.Write(entry.Strings())
-//		}
-//	}
-//}
-//}
-
-//func headerToString(headers http.Header) string {
-//	keys := make([]string, 0)
-//	for key := range headers {
-//		keys = append(keys, key)
-//	}
-//	sort.Strings(keys)
-//
-//	str := ""
-//	for i, key := range keys {
-//		str += fmt.Sprintf("%s: ", key)
-//		values := headers[key]
-//		for j, value := range values {
-//			str += value
-//			if j < len(values)-1 {
-//				str += ", "
-//			}
-//		}
-//
-//		if i < len(headers)-1 {
-//			str += "; "
-//		} else {
-//			str += ";"
-//		}
-//	}
-//	return str
-//}

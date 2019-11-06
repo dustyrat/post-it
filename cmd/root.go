@@ -28,8 +28,13 @@ TODO Long Description`,
 	cmd.PersistentFlags().StringVarP(&options.Output, "output", "o", "output.csv", "Output File")
 
 	cmd.PersistentFlags().StringArrayVar(&options.Headers, "header", []string{}, "HTTP headers to use (\"K: V\")")
-	// cmd.PersistentFlags().StringVarP(&options.RawUrl, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path/{column_name}' if input file is specified")
-	// cmd.MarkPersistentFlagRequired("url")
+	//cmd.PersistentFlags().StringVarP(&options.RawUrl, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path/{column_name}' if input file is specified")
+	//cmd.MarkPersistentFlagRequired("url")
+
+	cmd.PersistentFlags().StringVar(&options.Flags.Type, "response-type", "none", "Response type to output. eg: all, error, status, none")
+	cmd.PersistentFlags().StringVar(&options.Flags.Status, "response-status", "any", "Response status to output. eg: any, 2xx, -2xx (non 2xx statuses), 4xx, 5xx, 200, 301, 404, 503...")
+	cmd.PersistentFlags().BoolVar(&options.Flags.Body, "record-body", false, "Output body")
+	cmd.PersistentFlags().BoolVar(&options.Flags.Headers, "record-headers", false, "Output headers")
 
 	cmd.PersistentFlags().IntVarP(&options.Connections, "connections", "c", 10, "connections")
 	cmd.PersistentFlags().DurationVarP(&options.Client.Timeout, "timeout", "t", 3000*time.Millisecond, "Connection timeout")

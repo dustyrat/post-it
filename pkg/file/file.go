@@ -8,7 +8,12 @@ import (
 	"github.com/DustyRat/post-it/pkg/file/csv"
 )
 
-func ParseFile(file, method, rawUrl, body string) []*client.Request {
+type Data struct {
+	Record  csv.Record
+	Request *client.Request
+}
+
+func ParseFile(file, method, rawUrl, body string) ([]string, []*Data) {
 	input, err := os.Open(file)
 	if err != nil {
 		log.Fatal(err)
@@ -16,10 +21,13 @@ func ParseFile(file, method, rawUrl, body string) []*client.Request {
 	defer input.Close()
 
 	csvFile := csv.Parse(input, body)
-	requests := make([]*client.Request, 0)
+	data := make([]*Data, 0)
 	for i := range csvFile.Records {
-		request, _ := csvFile.Records[i].ToRequest(method, rawUrl)
-		requests = append(requests, request)
+		request, _ := csvFile.Records[i].Request(method, rawUrl)
+		data = append(data, &Data{
+			Record:  csvFile.Records[i],
+			Request: request,
+		})
 	}
-	return requests
+	return csvFile.Headers, data
 }

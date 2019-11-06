@@ -3,6 +3,11 @@ package worker
 import (
 	"sync"
 
+	"github.com/DustyRat/post-it/pkg/options"
+
+	"github.com/DustyRat/post-it/pkg/file"
+	"github.com/DustyRat/post-it/pkg/file/csv"
+
 	"github.com/DustyRat/post-it/pkg/stats"
 
 	"github.com/DustyRat/post-it/pkg/client"
@@ -12,7 +17,8 @@ import (
 )
 
 type Pool struct {
-	client *client.Client
+	options *options.Options
+	client  *client.Client
 
 	progress *mpb.Progress
 	bar      *mpb.Bar
@@ -21,11 +27,13 @@ type Pool struct {
 	workerPool *work.Pool
 	workers    []*worker
 
-	mutex *sync.Mutex
+	writer *csv.Writer
+	mutex  *sync.Mutex
 }
 
-func NewPool(workerPool *work.Pool, client *client.Client, stats *stats.Stats, progress *mpb.Progress, total int64) *Pool {
+func NewPool(options *options.Options, workerPool *work.Pool, client *client.Client, stats *stats.Stats, progress *mpb.Progress, total int64, writer *csv.Writer) *Pool {
 	return &Pool{
+		options:  options,
 		client:   client,
 		stats:    stats,
 		progress: progress,
@@ -44,27 +52,20 @@ func NewPool(workerPool *work.Pool, client *client.Client, stats *stats.Stats, p
 			),
 		),
 		workerPool: workerPool,
+		writer:     writer,
 		mutex:      &sync.Mutex{},
 	}
 }
 
-func (p *Pool) NewWorker(request *client.Request) *worker {
+func (p *Pool) NewWorker(data *file.Data) *worker {
 	p.mutex.Lock()
-	w := &worker{pool: p, progress: p.bar, request: request}
+	w := &worker{pool: p, progress: p.bar, record: data.Record, request: data.Request}
 	p.workers = append(p.workers, w)
 	p.mutex.Unlock()
 	return w
 }
 
 func (p *Pool) Run() {
-	// start := time.Now()
-	// defer func() {
-	// 	// p.stats.Print()
-	// 	elapsed := time.Now().Sub(start)
-	// 	fmt.Printf("Elapse: %s\n", elapsed.Round(10*time.Millisecond))
-	// 	// p.stats.Latencies.Print()
-	// }()
-
 	for _, worker := range p.workers {
 		p.workerPool.Run(worker)
 	}

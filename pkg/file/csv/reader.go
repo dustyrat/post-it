@@ -39,7 +39,7 @@ type Record struct {
 	Fields  map[string]string
 }
 
-func (r *Record) ToRequest(method, rawurl string) (*client.Request, error) {
+func (r *Record) Request(method, rawurl string) (*client.Request, error) {
 	return client.NewRequest(method, rawurl, http.Header{}, bytes.NewBuffer(r.Body), r.Fields)
 }
 

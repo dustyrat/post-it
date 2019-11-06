@@ -23,6 +23,7 @@ import (
 	"github.com/DustyRat/post-it/pkg/client"
 	"github.com/DustyRat/post-it/pkg/controller"
 	"github.com/DustyRat/post-it/pkg/file"
+	"github.com/DustyRat/post-it/pkg/file/csv"
 	"github.com/DustyRat/post-it/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -48,13 +49,23 @@ func NewCmdPatch(options *options.Options) *cobra.Command {
 				log.Fatal(err)
 			}
 
-			ctrl := controller.Controller{
-				Client:   clt,
-				Routines: options.Connections,
+			var writer *csv.Writer
+			if options.Output != "" {
+				writer, err = csv.NewWriter(options.Output)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 
-			requests := file.ParseFile(options.Input, http.MethodPatch, options.RawUrl, options.RequestBody)
-			err = ctrl.Run(requests)
+			ctrl := controller.Controller{
+				Options:  options,
+				Client:   clt,
+				Routines: options.Connections,
+				Writer:   writer,
+			}
+
+			headers, requests := file.ParseFile(options.Input, http.MethodPatch, options.RawUrl, options.RequestBody)
+			err = ctrl.Run(headers, requests)
 			if err != nil {
 				log.Fatal(err)
 			}

@@ -6,6 +6,7 @@ import (
 	"github.com/DustyRat/post-it/pkg/client"
 )
 
+// Options ...
 type Options struct {
 	Input  string
 	Output string
@@ -23,6 +24,7 @@ type Options struct {
 	InsecureSkipVerify bool
 }
 
+// Flags ...
 type Flags struct {
 	Type    string
 	Status  string

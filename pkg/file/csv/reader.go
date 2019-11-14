@@ -28,21 +28,25 @@ import (
 	"github.com/spkg/bom"
 )
 
+// Csv ...
 type Csv struct {
 	Headers []string
 	Records []Record
 }
 
+// Record ...
 type Record struct {
 	Headers []string
 	Body    []byte
 	Fields  map[string]string
 }
 
+// Request ...
 func (r *Record) Request(method, rawurl string) (*client.Request, error) {
 	return client.NewRequest(method, rawurl, http.Header{}, bytes.NewBuffer(r.Body), r.Fields)
 }
 
+// Parse ...
 func Parse(file *os.File, body string) Csv {
 	if file == nil {
 		return Csv{}

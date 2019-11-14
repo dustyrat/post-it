@@ -33,6 +33,7 @@ import (
 	"github.com/vbauerster/mpb"
 )
 
+// Controller ...
 type Controller struct {
 	Options  *options.Options
 	Client   *client.Client
@@ -42,6 +43,7 @@ type Controller struct {
 	template *template.Template
 }
 
+// Run ...
 func (c *Controller) Run(headers []string, requests []*file.Data) error {
 	c.Stats = stats.NewStats()
 	//c.template = template.Must(template.New("text").Parse(textTemplate))

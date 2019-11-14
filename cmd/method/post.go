@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewCmdPost ...
 func NewCmdPost(options *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "POST",

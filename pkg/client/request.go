@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// Request ...
 type Request struct {
 	Method   string
 	Header   http.Header
@@ -16,6 +17,7 @@ type Request struct {
 	Response *Response
 }
 
+// NewRequest ...
 func NewRequest(method, rawurl string, header http.Header, body io.Reader, fields map[string]string) (*Request, error) {
 	for k, v := range fields {
 		rawurl = strings.Replace(rawurl, fmt.Sprintf("{%s}", k), v, 1)
@@ -34,6 +36,7 @@ func NewRequest(method, rawurl string, header http.Header, body io.Reader, field
 	}, nil
 }
 
+// ParseHeaders ...
 func ParseHeaders(headers []string) http.Header {
 	header := http.Header{}
 	for _, h := range headers {

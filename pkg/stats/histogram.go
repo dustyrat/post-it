@@ -8,6 +8,13 @@ import (
 	"time"
 )
 
+// Histogram ...
+type Histogram struct {
+	m   map[time.Duration]uint
+	mux sync.RWMutex
+}
+
+// NewHistogram ...
 func NewHistogram() *Histogram {
 	return &Histogram{
 		m:   make(map[time.Duration]uint),
@@ -15,11 +22,7 @@ func NewHistogram() *Histogram {
 	}
 }
 
-type Histogram struct {
-	m   map[time.Duration]uint
-	mux sync.RWMutex
-}
-
+// Print ...
 func (h *Histogram) Print() {
 	count := uint(0)
 	sum := time.Duration(0)
@@ -89,24 +92,28 @@ func (h *Histogram) Print() {
 	}
 }
 
+// Add ...
 func (h *Histogram) Add(key time.Duration, amount uint) {
 	h.mux.Lock()
 	defer h.mux.Unlock()
 	h.m[key] += amount
 }
 
+// Increment ...
 func (h *Histogram) Increment(key time.Duration) {
 	h.mux.Lock()
 	defer h.mux.Unlock()
 	h.m[key]++
 }
 
+// Decrement ...
 func (h *Histogram) Decrement(key time.Duration) {
 	h.mux.Lock()
 	defer h.mux.Unlock()
 	h.m[key]--
 }
 
+// Count ...
 func (h *Histogram) Count() uint {
 	h.mux.Lock()
 	defer h.mux.Unlock()
@@ -118,6 +125,7 @@ func (h *Histogram) Count() uint {
 	return count
 }
 
+// Sum ...
 func (h *Histogram) Sum() time.Duration {
 	h.mux.RLock()
 	defer h.mux.RUnlock()

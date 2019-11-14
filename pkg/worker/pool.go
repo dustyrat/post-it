@@ -16,6 +16,7 @@ import (
 	"github.com/vbauerster/mpb/decor"
 )
 
+// Pool ...
 type Pool struct {
 	options *options.Options
 	client  *client.Client
@@ -31,6 +32,7 @@ type Pool struct {
 	mutex  *sync.Mutex
 }
 
+// NewPool ...
 func NewPool(options *options.Options, workerPool *work.Pool, client *client.Client, stats *stats.Stats, progress *mpb.Progress, total int64, writer *csv.Writer) *Pool {
 	return &Pool{
 		options:  options,
@@ -57,6 +59,7 @@ func NewPool(options *options.Options, workerPool *work.Pool, client *client.Cli
 	}
 }
 
+// NewWorker ...
 func (p *Pool) NewWorker(data *file.Data) *worker {
 	p.mutex.Lock()
 	w := &worker{pool: p, progress: p.bar, record: data.Record, request: data.Request}
@@ -65,6 +68,7 @@ func (p *Pool) NewWorker(data *file.Data) *worker {
 	return w
 }
 
+// Run ...
 func (p *Pool) Run() {
 	for _, worker := range p.workers {
 		p.workerPool.Run(worker)

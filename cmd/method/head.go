@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewCmdHead ...
 func NewCmdHead(options *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "HEAD",

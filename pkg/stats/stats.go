@@ -45,24 +45,28 @@ type shard struct {
 	mux sync.RWMutex
 }
 
+// Add ...
 func (s *shard) Add(key interface{}, amount uint) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	s.m[key] += amount
 }
 
+// Increment ...
 func (s *shard) Increment(key interface{}) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	s.m[key]++
 }
 
+// Decrement ...
 func (s *shard) Decrement(key interface{}) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	s.m[key]--
 }
 
+// Count ...
 func (s *shard) Count() uint {
 	s.mux.Lock()
 	defer s.mux.Unlock()
@@ -74,6 +78,7 @@ func (s *shard) Count() uint {
 	return count
 }
 
+// NewStats ...
 func NewStats() *Stats {
 	return &Stats{
 		Latencies: NewHistogram(),

@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewCmdPatch ...
 func NewCmdPatch(options *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "PATCH",

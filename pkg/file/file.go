@@ -8,11 +8,13 @@ import (
 	"github.com/DustyRat/post-it/pkg/file/csv"
 )
 
+// Data ...
 type Data struct {
 	Record  csv.Record
 	Request *client.Request
 }
 
+// ParseFile ...
 func ParseFile(file, method, rawUrl, body string) ([]string, []*Data) {
 	input, err := os.Open(file)
 	if err != nil {

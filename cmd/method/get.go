@@ -31,6 +31,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewCmdGet ...
 func NewCmdGet(options *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "GET",

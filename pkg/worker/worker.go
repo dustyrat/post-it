@@ -37,13 +37,13 @@ import (
 )
 
 var (
-	status_dxx *regexp.Regexp
-	status_ddd *regexp.Regexp
+	statusDxx *regexp.Regexp
+	statusDdd *regexp.Regexp
 )
 
 func init() {
-	status_dxx = regexp.MustCompile("^-?\\dxx")
-	status_ddd = regexp.MustCompile("\\d{3}")
+	statusDxx = regexp.MustCompile("^-?\\dxx")
+	statusDdd = regexp.MustCompile("\\d{3}")
 }
 
 type worker struct {
@@ -61,6 +61,7 @@ type entry struct {
 	err     error
 }
 
+// Strings ...
 func (e *entry) Strings(flags options.Flags) []string {
 	out := make([]string, 0)
 	for _, header := range e.record.Headers {
@@ -88,6 +89,7 @@ func (e *entry) Strings(flags options.Flags) []string {
 	return out
 }
 
+// Work ...
 func (w *worker) Work(id int) {
 	w.id = id
 	entry := &entry{record: w.record, request: w.request}
@@ -124,7 +126,7 @@ func (w *worker) write(entry *entry) {
 	case "status":
 		if w.pool.options.Flags.Status == "any" {
 			w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
-		} else if status_dxx.MatchString(w.pool.options.Flags.Status) {
+		} else if statusDxx.MatchString(w.pool.options.Flags.Status) {
 			status, _ := strconv.Atoi(strings.Replace(w.pool.options.Flags.Status, "xx", "00", 1))
 			if status > 0 {
 				a := status
@@ -139,7 +141,7 @@ func (w *worker) write(entry *entry) {
 					w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
 				}
 			}
-		} else if status_ddd.MatchString(w.pool.options.Flags.Status) {
+		} else if statusDdd.MatchString(w.pool.options.Flags.Status) {
 			status, _ := strconv.Atoi(w.pool.options.Flags.Status)
 			if entry.request.Response.StatusCode == status {
 				w.pool.writer.Write(entry.Strings(w.pool.options.Flags))

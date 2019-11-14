@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewCmdDelete ...
 func NewCmdDelete(options *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "DELETE",

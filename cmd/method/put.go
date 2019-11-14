@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewCmdPut ...
 func NewCmdPut(options *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "PUT",

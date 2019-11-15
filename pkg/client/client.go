@@ -2,12 +2,10 @@ package client
 
 import (
 	"crypto/tls"
-	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -70,39 +68,9 @@ func (c *Client) Do(method string, rel *url.URL, headers http.Header, body io.Re
 	var request *http.Request
 	var err error
 	_url := c.url.ResolveReference(rel)
-	switch strings.ToUpper(method) {
-	case http.MethodGet:
-		request, err = http.NewRequest(http.MethodGet, _url.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-	case http.MethodHead:
-		request, err = http.NewRequest(http.MethodHead, _url.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-	case http.MethodPost:
-		request, err = http.NewRequest(http.MethodPost, _url.String(), body)
-		if err != nil {
-			return nil, err
-		}
-	case http.MethodPut:
-		request, err = http.NewRequest(http.MethodPut, _url.String(), body)
-		if err != nil {
-			return nil, err
-		}
-	case http.MethodPatch:
-		request, err = http.NewRequest(http.MethodPatch, _url.String(), body)
-		if err != nil {
-			return nil, err
-		}
-	case http.MethodDelete:
-		request, err = http.NewRequest(http.MethodDelete, _url.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, errors.New("unsupported method")
+	request, err = http.NewRequest(method, _url.String(), body)
+	if err != nil {
+		return nil, err
 	}
 
 	for k, vs := range c.header {

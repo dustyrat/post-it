@@ -1,4 +1,3 @@
-
 package controller
 
 import (
@@ -32,7 +31,6 @@ type Controller struct {
 // Run ...
 func (c *Controller) Run(headers []string, requests []*file.Data) error {
 	c.Stats = stats.NewStats()
-	//c.template = template.Must(template.New("text").Parse(textTemplate))
 	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
@@ -57,7 +55,5 @@ func (c *Controller) Run(headers []string, requests []*file.Data) error {
 		pool.NewWorker(requests[i])
 	}
 	pool.Run()
-	//c.template.Execute(os.Stdout, c.Stats.Latencies)
-	//c.Stats.Latencies.Print()
 	return nil
 }

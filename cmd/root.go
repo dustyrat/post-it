@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/DustyRat/post-it/cmd/method"
+
 	"github.com/DustyRat/post-it/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -16,11 +17,6 @@ func Execute() {
 	cmd := &cobra.Command{
 		Use:   "post-it",
 		Short: "post-it is a HTTP(S) CLI library for calling a variaty of urls from an input file.",
-		Long: `post-it is a HTTP(S) CLI library for calling a variaty of urls from an input file.
-TODO Long Description`,
-		// Uncomment the following line if your bare application
-		// has an action associated with it:
-		//Run: func(cmd *cobra.Command, args []string) { },
 	}
 
 	options := options.Options{}
@@ -28,8 +24,8 @@ TODO Long Description`,
 	cmd.PersistentFlags().StringVarP(&options.Output, "output", "o", "output.csv", "Output File")
 
 	cmd.PersistentFlags().StringArrayVar(&options.Headers, "header", []string{}, "HTTP headers to use (\"K: V\")")
-	//cmd.PersistentFlags().StringVarP(&options.RawUrl, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path/{column_name}' if input file is specified")
-	//cmd.MarkPersistentFlagRequired("url")
+	cmd.PersistentFlags().StringVarP(&options.RawUrl, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path/{column_name}' if input file is specified")
+	cmd.MarkPersistentFlagRequired("url")
 
 	cmd.PersistentFlags().StringVar(&options.Flags.Type, "response-type", "none", "Response type to output. eg: all, error, status, none")
 	cmd.PersistentFlags().StringVar(&options.Flags.Status, "response-status", "any", "Response status to output. eg: any, 2xx, -2xx (non 2xx statuses), 4xx, 5xx, 200, 301, 404, 503...")

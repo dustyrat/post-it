@@ -1,8 +1,6 @@
-
 package method
 
 import (
-	"errors"
 	"log"
 	"net/http"
 
@@ -20,16 +18,8 @@ func NewCmdPut(options *options.Options) *cobra.Command {
 		Use:     "PUT",
 		Aliases: []string{"put"},
 		Short:   "The PUT method replaces all current representations of the target resource with the request payload.",
-		Long:    `The PUT method replaces all current representations of the target resource with the request payload.`,
 		Example: "post-it PUT -u http://localhost:3000/path/{column_name}",
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) < 1 {
-				return errors.New("missing url")
-			}
-			return nil
-		},
 		Run: func(cmd *cobra.Command, args []string) {
-			options.RawUrl = args[0]
 			options.Client.Headers = client.ParseHeaders(options.Headers)
 			clt, err := client.NewClient(options.Client)
 			if err != nil {

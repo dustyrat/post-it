@@ -1,8 +1,12 @@
-
 package stats
 
 import (
+	"fmt"
+	"net/http"
+	"os"
+	"sort"
 	"sync"
+	"text/tabwriter"
 )
 
 // Stats ...
@@ -10,13 +14,6 @@ type Stats struct {
 	Latencies *Histogram
 	Codes     *shard
 	Errors    *shard
-
-	//Requests  Histogram
-
-	//Responses Histogram
-	//Errors    Histogram
-
-	//template *template.Template
 }
 
 type stats struct {
@@ -64,8 +61,14 @@ func (s *shard) Count() uint {
 	return count
 }
 
-// NewStats ...
-func NewStats() *Stats {
+func (s *shard) read() map[interface{}]uint {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	return s.m
+}
+
+// New ...
+func New() *Stats {
 	return &Stats{
 		Latencies: NewHistogram(),
 		Codes: &shard{
@@ -77,4 +80,34 @@ func NewStats() *Stats {
 			mux: sync.RWMutex{},
 		},
 	}
+}
+
+func (s *Stats) PrintCodes() {
+	codes := make(sort.IntSlice, 0)
+	values := make([]interface{}, 0)
+	headers := ""
+	line := ""
+
+	m := s.Codes.read()
+	for code := range m {
+		codes = append(codes, code.(int))
+	}
+	codes.Sort()
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.AlignRight|tabwriter.Debug)
+	for _, code := range codes {
+		if code != 0 {
+			headers += fmt.Sprintf("%s: %d \t", http.StatusText(code), code)
+			line += "%d \t"
+			values = append(values, m[code])
+		} else {
+			headers += "Errors \t"
+			line += "%d \t"
+			values = append(values, m[code])
+		}
+	}
+
+	fmt.Fprintln(w, headers)
+	fmt.Fprintf(w, fmt.Sprintf("%s\n", line), values...)
+	w.Flush()
 }

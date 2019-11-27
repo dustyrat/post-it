@@ -30,7 +30,7 @@ type Controller struct {
 
 // Run ...
 func (c *Controller) Run(headers []string, requests []*file.Data) error {
-	c.Stats = stats.NewStats()
+	c.Stats = stats.New()
 	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
@@ -55,5 +55,6 @@ func (c *Controller) Run(headers []string, requests []*file.Data) error {
 		pool.NewWorker(requests[i])
 	}
 	pool.Run()
+	c.Stats.PrintCodes()
 	return nil
 }

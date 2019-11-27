@@ -15,9 +15,7 @@ limitations under the License.
 */
 package main
 
-import (
-	"github.com/DustyRat/post-it/cmd"
-)
+import "github.com/DustyRat/post-it/cmd"
 
 func main() {
 	cmd.Execute()

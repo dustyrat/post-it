@@ -1,40 +1,39 @@
-/*
-Copyright © 2019 Dustin Ratcliffe <dustin.k.ratcliffe@gmail.com>
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package csv
 
 import (
+	"bytes"
 	"encoding/csv"
 	"io"
 	"log"
+	"net/http"
 	"os"
+
+	"github.com/DustyRat/post-it/pkg/client"
 
 	"github.com/spkg/bom"
 )
 
+// Csv ...
 type Csv struct {
 	Headers []string
 	Records []Record
 }
 
+// Record ...
 type Record struct {
 	Headers []string
+	Body    []byte
 	Fields  map[string]string
 }
 
-func Parse(file *os.File) Csv {
+// Request ...
+func (r *Record) Request(method, rawurl string) (*client.Request, error) {
+	return client.NewRequest(method, rawurl, http.Header{}, bytes.NewBuffer(r.Body), r.Fields)
+}
+
+// Parse ...
+func Parse(file *os.File, body string) Csv {
 	if file == nil {
 		return Csv{}
 	}
@@ -57,6 +56,9 @@ func Parse(file *os.File) Csv {
 			record := Record{Headers: headers, Fields: make(map[string]string)}
 			for i := range headers {
 				record.Fields[headers[i]] = line[i]
+			}
+			if b, ok := record.Fields[body]; ok {
+				record.Body = []byte(b)
 			}
 			records = append(records, record)
 		}

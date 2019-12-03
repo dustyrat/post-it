@@ -22,6 +22,7 @@ func Execute() {
 	options := options.Options{}
 	cmd.PersistentFlags().StringVarP(&options.Input, "input", "i", "input.csv", "Input File")
 	cmd.PersistentFlags().StringVarP(&options.Output, "output", "o", "output.csv", "Output File")
+	cmd.PersistentFlags().BoolVarP(&options.Latencies, "latencies", "l", false, "Print latency statistics")
 
 	cmd.PersistentFlags().StringArrayVar(&options.Headers, "header", []string{}, "HTTP headers to use (\"K: V\")")
 	cmd.PersistentFlags().StringVarP(&options.RawUrl, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path/{column_name}' if input file is specified")

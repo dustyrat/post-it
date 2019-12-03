@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"os"
 	"text/template"
 	"time"
 
@@ -61,13 +62,16 @@ func (c *Controller) Run(headers []string, requests []*file.Data) error {
 	}
 	pool.Run()
 	c.Stats.PrintCodes()
-	// results := struct {
-	// 	Request  stats.Request
-	// 	Response stats.Response
-	// }{
-	// 	Response: c.Stats.Latencies.Gather([]float64{0.5, 0.75, 0.9, 0.95, 0.99}),
-	// 	Request:  c.Stats.Rate.Gather([]float64{0.5, 0.75, 0.9, 0.95, 0.99}),
-	// }
-	// c.template.Execute(os.Stdout, results)
+	if c.Options.Latencies {
+		results := struct {
+			Request  stats.Request
+			Response stats.Response
+		}{
+			Response: c.Stats.Latencies.Gather([]float64{0.5, 0.75, 0.9, 0.95, 0.99}),
+			Request:  c.Stats.Rate.Gather([]float64{0.5, 0.75, 0.9, 0.95, 0.99}),
+		}
+		c.template.Execute(os.Stdout, results)
+	}
+
 	return nil
 }

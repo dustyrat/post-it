@@ -7,20 +7,28 @@ import (
 	"sort"
 	"sync"
 	"text/tabwriter"
+	"time"
 )
 
 // Stats ...
 type Stats struct {
-	Latencies *Histogram
+	Rate      *Rate
+	Latencies *Latency
 	Codes     *shard
 	Errors    *shard
 }
 
-type stats struct {
-	Mean        float64
-	Stddev      float64
-	Max         float64
-	Percentiles map[float64]uint64
+type Response struct {
+	Mean        time.Duration
+	Stddev      time.Duration
+	Max         time.Duration
+	Percentiles map[float64]time.Duration
+}
+
+type Request struct {
+	Mean   float64
+	Stddev float64
+	Max    float64
 }
 
 type shard struct {
@@ -70,7 +78,8 @@ func (s *shard) read() map[interface{}]uint {
 // New ...
 func New() *Stats {
 	return &Stats{
-		Latencies: NewHistogram(),
+		Latencies: NewLatency(),
+		Rate:      NewRate(),
 		Codes: &shard{
 			m:   make(map[interface{}]uint),
 			mux: sync.RWMutex{},

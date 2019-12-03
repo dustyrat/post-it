@@ -105,34 +105,33 @@ func (c *Client) do(request *http.Request) (*Response, error) {
 
 func (c *Client) handle(request *http.Request) (*Response, error) {
 	start := time.Now()
-	resp, err := c.client.Do(request)
+	response, err := c.client.Do(request)
 	if err != nil {
 		if err, ok := err.(*url.Error); ok {
-			return nil, err.Unwrap()
+			return &Response{Duration: time.Now().Sub(start)}, err.Unwrap()
 		}
-		return nil, err
+		return &Response{Duration: time.Now().Sub(start)}, err
 	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return &Response{Duration: time.Now().Sub(start)}, err
 	}
-	response := Response{
-		Status:           resp.Status,
-		StatusCode:       resp.StatusCode,
-		Proto:            resp.Proto,
-		ProtoMajor:       resp.ProtoMajor,
-		ProtoMinor:       resp.ProtoMinor,
-		Header:           resp.Header,
+	return &Response{
+		Status:           response.Status,
+		StatusCode:       response.StatusCode,
+		Proto:            response.Proto,
+		ProtoMajor:       response.ProtoMajor,
+		ProtoMinor:       response.ProtoMinor,
+		Header:           response.Header,
 		Body:             body,
-		ContentLength:    resp.ContentLength,
-		TransferEncoding: resp.TransferEncoding,
-		Uncompressed:     resp.Uncompressed,
-		Trailer:          resp.Trailer,
+		ContentLength:    response.ContentLength,
+		TransferEncoding: response.TransferEncoding,
+		Uncompressed:     response.Uncompressed,
+		Trailer:          response.Trailer,
 		Duration:         time.Now().Sub(start),
-	}
-	return &response, nil
+	}, nil
 }
 
 // InRange ...

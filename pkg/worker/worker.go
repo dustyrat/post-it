@@ -1,4 +1,3 @@
-
 package worker
 
 import (
@@ -43,7 +42,7 @@ type worker struct {
 
 type entry struct {
 	record  csv.Record
-	request *client.Request
+	request client.Request
 	err     error
 }
 
@@ -57,14 +56,15 @@ func (e *entry) Strings(flags options.Flags) []string {
 			out = append(out, "")
 		}
 	}
-	out = append(out, strconv.Itoa(e.request.Response.StatusCode))
+	response := e.request.Response
+	out = append(out, strconv.Itoa(response.StatusCode))
 
 	if flags.Headers {
-		out = append(out, toString(e.request.Response.Header))
+		out = append(out, toString(response.Header))
 	}
 
 	if flags.Body {
-		out = append(out, string(e.request.Response.Body))
+		out = append(out, string(response.Body))
 	}
 
 	if e.err != nil {
@@ -78,59 +78,70 @@ func (e *entry) Strings(flags options.Flags) []string {
 // Work ...
 func (w *worker) Work(id int) {
 	w.id = id
-	entry := &entry{record: w.record, request: w.request}
+	entry := &entry{record: w.record, request: *w.request}
 	defer func() {
-		w.write(entry)
+		defer w.done()
+		// w.write(entry)
+		go write(w.pool.writer, *w.pool.options, *entry)
 		w.progress.Increment()
-		w.done()
+		w.pool.increment()
 	}()
 
 	response, err := w.pool.client.Do(w.request.Method, w.request.URL, w.request.Header, w.request.Body)
 	if err != nil {
 		entry.err = err
 		w.pool.stats.Errors.Increment(err)
-		return
 	}
-	w.request.Response = response
+
+	entry.request.Response = response
 	w.pool.stats.Codes.Increment(response.StatusCode)
 	w.pool.stats.Latencies.Increment(response.Duration)
 }
 
-func (w *worker) write(entry *entry) {
-	if w.pool.writer == nil {
+func write(w *csv.Writer, options options.Options, entry entry) {
+	if w == nil {
 		return
 	}
-	defer w.pool.writer.Flush()
+	defer w.Flush()
 
-	switch w.pool.options.Flags.Type {
+	request := entry.request
+	response := request.Response
+
+	switch options.Flags.Type {
 	case "all":
-		w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+		output := entry.Strings(options.Flags)
+		w.Write(output)
 	case "error":
 		if entry.err != nil {
-			w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+			output := entry.Strings(options.Flags)
+			w.Write(output)
 		}
 	case "status":
-		if w.pool.options.Flags.Status == "any" {
-			w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
-		} else if statusDxx.MatchString(w.pool.options.Flags.Status) {
-			status, _ := strconv.Atoi(strings.Replace(w.pool.options.Flags.Status, "xx", "00", 1))
+		if options.Flags.Status == "any" {
+			output := entry.Strings(options.Flags)
+			w.Write(output)
+		} else if statusDxx.MatchString(options.Flags.Status) {
+			status, _ := strconv.Atoi(strings.Replace(options.Flags.Status, "xx", "00", 1))
 			if status > 0 {
 				a := status
 				b := a + 100
-				if client.InRange(entry.request.Response.StatusCode, a, b) {
-					w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+				if client.InRange(response.StatusCode, a, b) {
+					output := entry.Strings(options.Flags)
+					w.Write(output)
 				}
 			} else {
 				a := -status
 				b := a + 100
-				if !client.InRange(entry.request.Response.StatusCode, a, b) {
-					w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+				if !client.InRange(response.StatusCode, a, b) {
+					output := entry.Strings(options.Flags)
+					w.Write(output)
 				}
 			}
-		} else if statusDdd.MatchString(w.pool.options.Flags.Status) {
-			status, _ := strconv.Atoi(w.pool.options.Flags.Status)
-			if entry.request.Response.StatusCode == status {
-				w.pool.writer.Write(entry.Strings(w.pool.options.Flags))
+		} else if statusDdd.MatchString(options.Flags.Status) {
+			status, _ := strconv.Atoi(options.Flags.Status)
+			if response.StatusCode == status {
+				output := entry.Strings(options.Flags)
+				w.Write(output)
 			}
 		}
 	}

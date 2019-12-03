@@ -2,6 +2,7 @@ package worker
 
 import (
 	"sync"
+	"time"
 
 	"github.com/DustyRat/post-it/pkg/options"
 
@@ -18,6 +19,10 @@ import (
 
 // Pool ...
 type Pool struct {
+	start    time.Time
+	time     time.Time
+	requests int64
+
 	options *options.Options
 	client  *client.Client
 
@@ -29,7 +34,9 @@ type Pool struct {
 	workers    []*worker
 
 	writer *csv.Writer
-	mutex  *sync.Mutex
+	mux    *sync.Mutex
+
+	done chan interface{}
 }
 
 // NewPool ...
@@ -55,24 +62,66 @@ func NewPool(options *options.Options, workerPool *work.Pool, client *client.Cli
 		),
 		workerPool: workerPool,
 		writer:     writer,
-		mutex:      &sync.Mutex{},
+		mux:        &sync.Mutex{},
+		done:       make(chan interface{}),
 	}
 }
 
 // NewWorker ...
 func (p *Pool) NewWorker(data *file.Data) *worker {
-	p.mutex.Lock()
+	p.mux.Lock()
 	w := &worker{pool: p, progress: p.bar, record: data.Record, request: data.Request}
 	p.workers = append(p.workers, w)
-	p.mutex.Unlock()
+	p.mux.Unlock()
 	return w
 }
 
 // Run ...
 func (p *Pool) Run() {
+	defer close(p.done)
+	p.start = time.Now()
+	p.time = p.start
+	go p.rateMeter()
+
 	for _, worker := range p.workers {
 		p.workerPool.Run(worker)
 	}
 	p.workerPool.Shutdown()
 	p.progress.Wait()
+	p.done <- struct{}{}
+}
+
+func (p *Pool) increment() {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	p.requests++
+}
+
+func (p *Pool) rateMeter() {
+	interval := 10 * time.Millisecond
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	tick := ticker.C
+	done := p.done
+	for {
+		select {
+		case <-tick:
+			rate := p.rps()
+			p.stats.Rate.Increment(rate)
+			continue
+		case <-done:
+			rate := p.rps()
+			p.stats.Rate.Increment(rate)
+			return
+		}
+	}
+}
+
+func (p *Pool) rps() float64 {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	duration, requests := time.Since(p.time), p.requests
+	p.requests = 0
+	p.time = time.Now()
+	return float64(requests) / duration.Seconds()
 }

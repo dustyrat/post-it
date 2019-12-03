@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"os"
 	"text/template"
 	"time"
 
@@ -31,6 +32,11 @@ type Controller struct {
 // Run ...
 func (c *Controller) Run(headers []string, requests []*file.Data) error {
 	c.Stats = stats.New()
+	c.template = template.Must(template.New("text").Funcs(template.FuncMap{
+		"Multiply": func(num, coeff float64) float64 {
+			return num * coeff
+		},
+	}).Parse(text))
 	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
@@ -56,5 +62,16 @@ func (c *Controller) Run(headers []string, requests []*file.Data) error {
 	}
 	pool.Run()
 	c.Stats.PrintCodes()
+	if c.Options.Latencies {
+		results := struct {
+			Request  stats.Request
+			Response stats.Response
+		}{
+			Response: c.Stats.Latencies.Gather([]float64{0.5, 0.75, 0.9, 0.95, 0.99}),
+			Request:  c.Stats.Rate.Gather([]float64{0.5, 0.75, 0.9, 0.95, 0.99}),
+		}
+		c.template.Execute(os.Stdout, results)
+	}
+
 	return nil
 }

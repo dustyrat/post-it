@@ -8,9 +8,10 @@ import (
 
 // Options ...
 type Options struct {
-	Input  string
-	Output string
-	Flags  Flags
+	Input     string
+	Output    string
+	Latencies bool
+	Flags     Flags
 
 	Connections int
 	Client      client.Config

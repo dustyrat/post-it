@@ -16,7 +16,7 @@ import (
 
 	"github.com/DustyRat/post-it/pkg/client"
 
-	"github.com/vbauerster/mpb"
+	"github.com/vbauerster/mpb/v4"
 
 	log "github.com/sirupsen/logrus"
 )

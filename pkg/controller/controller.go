@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"context"
 	"errors"
 	"os"
 	"text/template"
@@ -16,7 +15,7 @@ import (
 	"github.com/DustyRat/post-it/pkg/worker"
 
 	"github.com/goinggo/work"
-	"github.com/vbauerster/mpb"
+	"github.com/vbauerster/mpb/v4"
 )
 
 // Controller ...
@@ -42,7 +41,7 @@ func (c *Controller) Run(headers []string, requests []*file.Data) error {
 		return errors.New("error creating worker pools")
 	}
 
-	progress := mpb.New(mpb.WithContext(context.Background()))
+	progress := mpb.New()
 	pool := worker.NewPool(c.Options, wp, c.Client, c.Stats, progress, int64(len(requests)), c.Writer)
 
 	if c.Writer != nil {

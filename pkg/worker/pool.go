@@ -13,8 +13,8 @@ import (
 
 	"github.com/DustyRat/post-it/pkg/client"
 	"github.com/goinggo/work"
-	"github.com/vbauerster/mpb/v4"
-	"github.com/vbauerster/mpb/v4/decor"
+	"github.com/vbauerster/mpb/v5"
+	"github.com/vbauerster/mpb/v5/decor"
 )
 
 // Pool ...

@@ -15,7 +15,7 @@ import (
 	"github.com/DustyRat/post-it/pkg/worker"
 
 	"github.com/goinggo/work"
-	"github.com/vbauerster/mpb/v4"
+	"github.com/vbauerster/mpb/v5"
 )
 
 // Controller ...

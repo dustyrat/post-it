@@ -1,4 +1,19 @@
-#### post-it
+
+# post-it
+[![Go Report Card](https://goreportcard.com/badge/github.com/DustyRat/post-it)](https://goreportcard.com/report/github.com/DustyRat/post-it)
+[![GoDoc](https://godoc.org/github.com/DustyRat/post-it?status.svg)](http://godoc.org/github.com/DustyRat/post-it)
+[![Coverage](https://gocover.io/_badge/github.com/DustyRat/post-it)](https://gocover.io/github.com/DustyRat/post-it)
+
+post-it is a HTTP(S) testing tool. It is written in Go programming language.
+
+
+## Installation
+You can grab binaries in the [releases](https://github.com/DustyRat/post-it/releases) section.
+
+Alternatively, to get latest and greatest run: `go get -u github.com/DustyRat/post-it`
+
+## Usage
+
 ```
 post-it is a HTTP(S) CLI library for calling a variaty of urls from an input file.
 
@@ -33,3 +48,9 @@ Flags:
 
 Use "post-it [command] --help" for more information about a command.
 ```
+
+## Examples
+// TODO: Add examples
+
+## Licensing
+"The code in this project is licensed under MIT license."

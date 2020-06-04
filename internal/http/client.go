@@ -57,7 +57,7 @@ func init() {
 				Name: "http_outbound_requests_status_total",
 				Help: "Counter of successful Outbound HTTP requests by status code.",
 			},
-			[]string{"method", "host", "code"},
+			[]string{"method", "code"},
 		),
 		duration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -71,15 +71,16 @@ func init() {
 					10,
 				},
 			},
-			[]string{"method", "host"},
+			[]string{"method"},
 		),
 		summary: prometheus.NewSummaryVec(
 			prometheus.SummaryOpts{
 				Name:       "http_outbound_request_quantile",
 				Help:       "Summary of latencies for Outbound HTTP requests.",
 				Objectives: map[float64]float64{0.5: 0.05, 0.75: 0.025, 0.9: 0.01, 0.95: 0.005, 0.99: 0.001, 1.00: 0.0},
+				MaxAge:     7 * 24 * time.Hour,
 			},
-			[]string{"method", "host"},
+			[]string{"method"},
 		),
 	}
 	Registry.MustRegister(m.status, m.duration, m.summary)
@@ -198,14 +199,14 @@ func (c *Client) do(request *http.Request) (*Response, error) {
 	start := time.Now()
 	resp, err := c.client.Do(request)
 	if err != nil {
-		m.status.WithLabelValues(strings.ToLower(request.Method), request.URL.Host, "0").Inc()
+		m.status.WithLabelValues(strings.ToLower(request.Method), "0").Inc()
 		if err, ok := err.(*url.Error); ok {
 			return nil, err.Unwrap()
 		}
 		return nil, err
 	}
 	defer resp.Body.Close()
-	m.status.WithLabelValues(strings.ToLower(request.Method), request.URL.Host, strconv.Itoa(resp.StatusCode)).Inc()
+	m.status.WithLabelValues(strings.ToLower(request.Method), strconv.Itoa(resp.StatusCode)).Inc()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -226,8 +227,8 @@ func (c *Client) do(request *http.Request) (*Response, error) {
 		Duration:         time.Now().Sub(start),
 		Request:          request,
 	}
-	m.duration.WithLabelValues(strings.ToLower(request.Method), request.URL.Host).Observe(response.Duration.Seconds())
-	m.summary.WithLabelValues(strings.ToLower(request.Method), request.URL.Host).Observe(response.Duration.Seconds())
+	m.duration.WithLabelValues(strings.ToLower(request.Method)).Observe(response.Duration.Seconds())
+	m.summary.WithLabelValues(strings.ToLower(request.Method)).Observe(response.Duration.Seconds())
 	return &response, nil
 }
 

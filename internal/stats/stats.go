@@ -67,6 +67,9 @@ func Print(opts options.Options, elapsed time.Duration) {
 		cumlative += float64(count) * math.Pow(float64(bucket-average), 2)
 	}
 	stddev := time.Duration(math.Sqrt(cumlative / float64(count)))
+	if stddev < 0 {
+		stddev = 0
+	}
 
 	quantiles := make(map[float64]time.Duration)
 	qbuckets := make(sort.Float64Slice, 0)

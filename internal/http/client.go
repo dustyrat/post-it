@@ -201,9 +201,15 @@ func (c *Client) do(request *http.Request) (*Response, error) {
 	if err != nil {
 		m.status.WithLabelValues(strings.ToLower(request.Method), "0").Inc()
 		if err, ok := err.(*url.Error); ok {
-			return nil, err.Unwrap()
+			return &Response{
+				Duration: time.Now().Sub(start),
+				Request:  request,
+			}, err.Unwrap()
 		}
-		return nil, err
+		return &Response{
+			Duration: time.Now().Sub(start),
+			Request:  request,
+		}, err
 	}
 	defer resp.Body.Close()
 	m.status.WithLabelValues(strings.ToLower(request.Method), strconv.Itoa(resp.StatusCode)).Inc()

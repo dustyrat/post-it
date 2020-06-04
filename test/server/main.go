@@ -291,8 +291,8 @@ func respond(w http.ResponseWriter, code int, contentType string, payload interf
 	w.Write(body)
 	time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
 	time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-	// 	time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
-	// 	time.Sleep(time.Duration(rand.Intn(10000)) * time.Millisecond)
+	time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
+	// time.Sleep(time.Duration(rand.Intn(10000)) * time.Millisecond)
 }
 
 func unmarshal(accept string, body []byte, v interface{}) error {

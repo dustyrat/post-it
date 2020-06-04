@@ -4,11 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/DustyRat/post-it/pkg/client"
-	"github.com/DustyRat/post-it/pkg/controller"
-	"github.com/DustyRat/post-it/pkg/file"
-	"github.com/DustyRat/post-it/pkg/file/csv"
-	"github.com/DustyRat/post-it/pkg/options"
+	"github.com/DustyRat/post-it/internal/controller"
+	"github.com/DustyRat/post-it/internal/file/csv"
+	internal "github.com/DustyRat/post-it/internal/http"
+	"github.com/DustyRat/post-it/internal/options"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +19,8 @@ func NewCmdDelete(options *options.Options) *cobra.Command {
 		Short:   "The DELETE method deletes the specified resource.",
 		Example: "post-it DELETE -u http://localhost:3000/path/{column_name}",
 		Run: func(cmd *cobra.Command, args []string) {
-			options.Client.Headers = client.ParseHeaders(options.Headers)
-			clt, err := client.NewClient(options.Client)
+			options.Client.Headers = internal.ParseHeaders(options.Headers)
+			client, err := internal.New(options.Client)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -36,13 +35,12 @@ func NewCmdDelete(options *options.Options) *cobra.Command {
 
 			ctrl := controller.Controller{
 				Options:  options,
-				Client:   clt,
+				Client:   client,
 				Routines: options.Connections,
 				Writer:   writer,
 			}
 
-			headers, requests := file.ParseFile(options.Input, http.MethodDelete, options.RawUrl, options.RequestBody)
-			err = ctrl.Run(headers, requests)
+			err = ctrl.Run(options.Input, http.MethodDelete, options.RawUrl, options.RequestBody)
 			if err != nil {
 				log.Fatal(err)
 			}

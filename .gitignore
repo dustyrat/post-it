@@ -86,7 +86,7 @@ local.properties
 *.out
 
 ### Go Patch ###
-/vendor/
+# /vendor/
 /Godeps/
 
 ### Linux ###

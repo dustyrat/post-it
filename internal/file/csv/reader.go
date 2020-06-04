@@ -11,6 +11,8 @@ import (
 	"sync"
 
 	internal "github.com/DustyRat/post-it/internal/http"
+
+	"github.com/dimchansky/utfbom"
 )
 
 // Record ...
@@ -42,7 +44,7 @@ func NewReader(file *os.File, method, rawurl, body string) *Reader {
 		log.Fatal(errors.New("no file provided"))
 	}
 
-	reader := csv.NewReader(file)
+	reader := csv.NewReader(utfbom.SkipOnly(file))
 	reader.LazyQuotes = true
 	reader.TrimLeadingSpace = true
 

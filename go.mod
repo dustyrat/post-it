@@ -3,6 +3,7 @@ module github.com/DustyRat/post-it
 go 1.14
 
 require (
+	github.com/dimchansky/utfbom v1.1.0
 	github.com/goinggo/work v0.0.0-20150417195554-e2c4d06662b4
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/gorilla/mux v1.7.4

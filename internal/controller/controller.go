@@ -25,14 +25,14 @@ type Controller struct {
 }
 
 // Run ...
-func (c *Controller) Run(file, method, rawURL, body string) error {
+func (c *Controller) Run(file, method, rawURL string) error {
 	input, err := os.Open(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer input.Close()
 
-	reader := csv.NewReader(input, method, rawURL, body)
+	reader := csv.NewReader(input, method, rawURL, "request_body")
 	wp, err := work.New(c.Routines, time.Hour*24, func(message string) {})
 	if err != nil {
 		return errors.New("error creating worker pools")
@@ -44,9 +44,9 @@ func (c *Controller) Run(file, method, rawURL, body string) error {
 	headers := reader.Headers()
 	if c.Writer != nil {
 		headers = append(headers, "status")
-		if c.Options.Flags.Headers {
-			headers = append(headers, "headers")
-		}
+		// if c.Options.Flags.Headers {
+		// 	headers = append(headers, "headers")
+		// }
 		if c.Options.Flags.Body {
 			headers = append(headers, "response_body")
 		}

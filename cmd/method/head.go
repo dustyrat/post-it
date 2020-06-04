@@ -12,35 +12,35 @@ import (
 )
 
 // NewCmdHead ...
-func NewCmdHead(options *options.Options) *cobra.Command {
+func NewCmdHead(opts *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "HEAD",
 		Aliases: []string{"head"},
 		Short:   "The HEAD method asks for a response identical to that of a GET request, but without the response body.",
 		Example: "post-it HEAD -u http://localhost:3000/path/{column_name}",
 		Run: func(cmd *cobra.Command, args []string) {
-			options.Client.Headers = internal.ParseHeaders(options.Headers)
-			client, err := internal.New(options.Client)
+			opts.Client.Headers = internal.ParseHeaders(opts.Headers)
+			client, err := internal.New(opts.Client)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			var writer *csv.Writer
-			if options.Output != "" {
-				writer, err = csv.NewWriter(options.Output)
+			if opts.Output != "" {
+				writer, err = csv.NewWriter(opts.Output)
 				if err != nil {
 					log.Fatal(err)
 				}
 			}
 
 			ctrl := controller.Controller{
-				Options:  options,
+				Options:  opts,
 				Client:   client,
-				Routines: options.Connections,
+				Routines: opts.Connections,
 				Writer:   writer,
 			}
 
-			err = ctrl.Run(options.Input, http.MethodHead, options.RawUrl, options.RequestBody)
+			err = ctrl.Run(opts.Input, http.MethodHead, opts.RawUrl)
 			if err != nil {
 				log.Fatal(err)
 			}

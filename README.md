@@ -2,6 +2,8 @@
 ```
 post-it is a HTTP(S) CLI library for calling a variaty of urls from an input file.
 
+All methods use the request_body column for requests.
+
 Usage:
   post-it [command]
 

@@ -57,10 +57,9 @@ func (e *entry) Strings(flags options.Flags) []string {
 	response := e.request.Response
 	if response != nil {
 		out = append(out, strconv.Itoa(response.StatusCode))
-		if flags.Headers {
-			out = append(out, toString(response.Header))
-		}
-
+		// if flags.Headers {
+		// 	out = append(out, toString(response.Header))
+		// }
 		if flags.Body {
 			out = append(out, string(response.Body))
 		}
@@ -69,7 +68,6 @@ func (e *entry) Strings(flags options.Flags) []string {
 		if flags.Headers {
 			out = append(out, "")
 		}
-
 		if flags.Body {
 			out = append(out, "")
 		}
@@ -102,7 +100,7 @@ func (w *worker) Work(id int) {
 	entry.request.Response = response
 }
 
-func write(w *csv.Writer, options options.Options, entry entry) {
+func write(w *csv.Writer, opts options.Options, entry entry) {
 	if w == nil {
 		return
 	}
@@ -111,37 +109,37 @@ func write(w *csv.Writer, options options.Options, entry entry) {
 	request := entry.request
 	response := request.Response
 
-	if options.Flags.Errors {
+	if opts.Flags.Errors {
 		if entry.err != nil {
-			output := entry.Strings(options.Flags)
+			output := entry.Strings(opts.Flags)
 			w.Write(output)
 		}
 	}
 
-	if options.Flags.Status == "any" {
-		output := entry.Strings(options.Flags)
+	if opts.Flags.Status == "any" {
+		output := entry.Strings(opts.Flags)
 		w.Write(output)
-	} else if statusDxx.MatchString(options.Flags.Status) {
-		status, _ := strconv.Atoi(strings.Replace(options.Flags.Status, "xx", "00", 1))
+	} else if statusDxx.MatchString(opts.Flags.Status) {
+		status, _ := strconv.Atoi(strings.Replace(opts.Flags.Status, "xx", "00", 1))
 		if status > 0 {
 			a := status
 			b := a + 100
 			if internal.InRange(response.StatusCode, a, b) {
-				output := entry.Strings(options.Flags)
+				output := entry.Strings(opts.Flags)
 				w.Write(output)
 			}
 		} else {
 			a := -status
 			b := a + 100
 			if !internal.InRange(response.StatusCode, a, b) {
-				output := entry.Strings(options.Flags)
+				output := entry.Strings(opts.Flags)
 				w.Write(output)
 			}
 		}
-	} else if statusDdd.MatchString(options.Flags.Status) {
-		status, _ := strconv.Atoi(options.Flags.Status)
+	} else if statusDdd.MatchString(opts.Flags.Status) {
+		status, _ := strconv.Atoi(opts.Flags.Status)
 		if response.StatusCode == status {
-			output := entry.Strings(options.Flags)
+			output := entry.Strings(opts.Flags)
 			w.Write(output)
 		}
 	}

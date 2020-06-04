@@ -80,6 +80,9 @@ type response struct {
 func get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer close(w, r)
+		contentType := r.Header.Get("Content-Type")
+		accept := r.Header.Get("Accept")
+
 		vars := mux.Vars(r)
 		id := vars["id"]
 
@@ -90,7 +93,7 @@ func get() http.HandlerFunc {
 			if err != nil {
 				e = log.Error().Stack().Err(err)
 			}
-			e.Str("handler", "get").Str("id", id).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
+			e.Str("handler", "get").Str("Content-Type", contentType).Str("Accept", accept).Str("id", id).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
 		}(e, start)
 
 		if id == "" {
@@ -98,7 +101,7 @@ func get() http.HandlerFunc {
 			return
 		}
 		now := time.Now()
-		respond(w, http.StatusOK, r.Header.Get("Accept"), response{
+		respond(w, http.StatusOK, accept, response{
 			ID:       id,
 			String:   "asdf safasdf asdf",
 			Integer:  rand.Int(),
@@ -128,6 +131,8 @@ func get() http.HandlerFunc {
 func head() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer close(w, r)
+		contentType := r.Header.Get("Content-Type")
+		accept := r.Header.Get("Accept")
 
 		start := time.Now()
 		var err error
@@ -136,7 +141,7 @@ func head() http.HandlerFunc {
 			if err != nil {
 				e = log.Error().Stack().Err(err)
 			}
-			e.Str("handler", "head").Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
+			e.Str("handler", "head").Str("Content-Type", contentType).Str("Accept", accept).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
 		}(e, start)
 
 		respond(w, http.StatusOK, "text/html", "head")
@@ -146,6 +151,8 @@ func head() http.HandlerFunc {
 func post() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer close(w, r)
+		contentType := r.Header.Get("Content-Type")
+		accept := r.Header.Get("Accept")
 
 		start := time.Now()
 		var err error
@@ -154,28 +161,30 @@ func post() http.HandlerFunc {
 			if err != nil {
 				e = log.Error().Stack().Err(err)
 			}
-			e.Str("handler", "post").Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
+			e.Str("handler", "post").Str("Content-Type", contentType).Str("Accept", accept).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
 		}(e, start)
 
 		response := response{}
-		accept := r.Header.Get("Accept")
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			respond(w, http.StatusUnprocessableEntity, "text/html", err.Error())
+			return
 		}
 
-		if err := unmarshal(accept, body, &response); err != nil {
+		if err := unmarshal(contentType, body, &response); err != nil {
 			respond(w, http.StatusUnprocessableEntity, "text/html", err.Error())
+			return
 		}
-
-		contentType := r.Header.Get("Content-Type")
-		respond(w, http.StatusCreated, contentType, response)
+		respond(w, http.StatusCreated, accept, response)
 	}
 }
 
 func put() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer close(w, r)
+		contentType := r.Header.Get("Content-Type")
+		accept := r.Header.Get("Accept")
+
 		vars := mux.Vars(r)
 		id := vars["id"]
 
@@ -186,7 +195,7 @@ func put() http.HandlerFunc {
 			if err != nil {
 				e = log.Error().Stack().Err(err)
 			}
-			e.Str("handler", "put").Str("id", id).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
+			e.Str("handler", "put").Str("Content-Type", contentType).Str("Accept", accept).Str("id", id).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
 		}(e, start)
 
 		if id == "" {
@@ -195,24 +204,26 @@ func put() http.HandlerFunc {
 		}
 
 		response := response{}
-		accept := r.Header.Get("Accept")
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			respond(w, http.StatusUnprocessableEntity, "text/html", err.Error())
+			return
 		}
 
-		if err := unmarshal(accept, body, &response); err != nil {
+		if err := unmarshal(contentType, body, &response); err != nil {
 			respond(w, http.StatusUnprocessableEntity, "text/html", err.Error())
+			return
 		}
-
-		contentType := r.Header.Get("Content-Type")
-		respond(w, http.StatusCreated, contentType, response)
+		respond(w, http.StatusCreated, accept, response)
 	}
 }
 
 func patch() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer close(w, r)
+		contentType := r.Header.Get("Content-Type")
+		accept := r.Header.Get("Accept")
+
 		vars := mux.Vars(r)
 		id := vars["id"]
 
@@ -223,7 +234,7 @@ func patch() http.HandlerFunc {
 			if err != nil {
 				e = log.Error().Stack().Err(err)
 			}
-			e.Str("handler", "put").Str("id", id).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
+			e.Str("handler", "put").Str("Content-Type", contentType).Str("Accept", accept).Str("id", id).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
 		}(e, start)
 
 		if id == "" {
@@ -232,24 +243,26 @@ func patch() http.HandlerFunc {
 		}
 
 		response := response{}
-		accept := r.Header.Get("Accept")
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			respond(w, http.StatusUnprocessableEntity, "text/html", err.Error())
+			return
 		}
 
-		if err := unmarshal(accept, body, &response); err != nil {
+		if err := unmarshal(contentType, body, &response); err != nil {
 			respond(w, http.StatusUnprocessableEntity, "text/html", err.Error())
+			return
 		}
-
-		contentType := r.Header.Get("Content-Type")
-		respond(w, http.StatusCreated, contentType, response)
+		respond(w, http.StatusCreated, accept, response)
 	}
 }
 
 func delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer close(w, r)
+		contentType := r.Header.Get("Content-Type")
+		accept := r.Header.Get("Accept")
+
 		vars := mux.Vars(r)
 		id := vars["id"]
 
@@ -260,7 +273,7 @@ func delete() http.HandlerFunc {
 			if err != nil {
 				e = log.Error().Stack().Err(err)
 			}
-			e.Str("handler", "put").Str("id", id).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
+			e.Str("handler", "put").Str("Content-Type", contentType).Str("Accept", accept).Str("id", id).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
 		}(e, start)
 
 		if id == "" {

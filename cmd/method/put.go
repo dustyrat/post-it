@@ -12,35 +12,35 @@ import (
 )
 
 // NewCmdPut ...
-func NewCmdPut(options *options.Options) *cobra.Command {
+func NewCmdPut(opts *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "PUT",
 		Aliases: []string{"put"},
 		Short:   "The PUT method replaces all current representations of the target resource with the request payload.",
 		Example: "post-it PUT -u http://localhost:3000/path/{column_name}",
 		Run: func(cmd *cobra.Command, args []string) {
-			options.Client.Headers = internal.ParseHeaders(options.Headers)
-			client, err := internal.New(options.Client)
+			opts.Client.Headers = internal.ParseHeaders(opts.Headers)
+			client, err := internal.New(opts.Client)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			var writer *csv.Writer
-			if options.Output != "" {
-				writer, err = csv.NewWriter(options.Output)
+			if opts.Output != "" {
+				writer, err = csv.NewWriter(opts.Output)
 				if err != nil {
 					log.Fatal(err)
 				}
 			}
 
 			ctrl := controller.Controller{
-				Options:  options,
+				Options:  opts,
 				Client:   client,
-				Routines: options.Connections,
+				Routines: opts.Connections,
 				Writer:   writer,
 			}
 
-			err = ctrl.Run(options.Input, http.MethodPut, options.RawUrl, options.RequestBody)
+			err = ctrl.Run(opts.Input, http.MethodPut, opts.RawUrl)
 			if err != nil {
 				log.Fatal(err)
 			}

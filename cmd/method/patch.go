@@ -12,35 +12,35 @@ import (
 )
 
 // NewCmdPatch ...
-func NewCmdPatch(options *options.Options) *cobra.Command {
+func NewCmdPatch(opts *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "PATCH",
 		Aliases: []string{"patch"},
 		Short:   "The PATCH method is used to apply partial modifications to a resource.",
 		Example: "post-it PATCH -u http://localhost:3000/path/{column_name}",
 		Run: func(cmd *cobra.Command, args []string) {
-			options.Client.Headers = internal.ParseHeaders(options.Headers)
-			client, err := internal.New(options.Client)
+			opts.Client.Headers = internal.ParseHeaders(opts.Headers)
+			client, err := internal.New(opts.Client)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			var writer *csv.Writer
-			if options.Output != "" {
-				writer, err = csv.NewWriter(options.Output)
+			if opts.Output != "" {
+				writer, err = csv.NewWriter(opts.Output)
 				if err != nil {
 					log.Fatal(err)
 				}
 			}
 
 			ctrl := controller.Controller{
-				Options:  options,
+				Options:  opts,
 				Client:   client,
-				Routines: options.Connections,
+				Routines: opts.Connections,
 				Writer:   writer,
 			}
 
-			err = ctrl.Run(options.Input, http.MethodPatch, options.RawUrl, options.RequestBody)
+			err = ctrl.Run(opts.Input, http.MethodPatch, opts.RawUrl)
 			if err != nil {
 				log.Fatal(err)
 			}

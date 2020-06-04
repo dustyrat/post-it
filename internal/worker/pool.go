@@ -32,9 +32,9 @@ type Pool struct {
 }
 
 // NewPool ...
-func NewPool(options *options.Options, pool *work.Pool, client *http.Client, progress *mpb.Progress, total int, reader *csv.Reader, writer *csv.Writer) *Pool {
+func NewPool(opts *options.Options, pool *work.Pool, client *http.Client, progress *mpb.Progress, total int, reader *csv.Reader, writer *csv.Writer) *Pool {
 	return &Pool{
-		options:  options,
+		options:  opts,
 		client:   client,
 		progress: progress,
 		bar: progress.AddBar(int64(total),

@@ -5,7 +5,7 @@
 [![Coverage](https://gocover.io/_badge/github.com/DustyRat/post-it)](https://gocover.io/github.com/DustyRat/post-it)
 
 post-it is a HTTP(S) testing tool. It is written in Go programming language.
-> Insperation taken from https://www.postman.com/ and https://github.com/codesenberg/bombardier
+> Inspiration taken from https://www.postman.com/ and https://github.com/codesenberg/bombardier
 
 
 ## Installation

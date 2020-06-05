@@ -11,6 +11,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const template = `Usage:{{if .Runnable}}
+{{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+{{.CommandPath}} [command] <url>{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+{{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+{{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+{{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -22,6 +47,7 @@ func Execute() {
 All methods use the request_body column for requests.
 		`,
 	}
+	cmd.SetUsageTemplate(template)
 
 	opts := options.Options{}
 	cmd.PersistentFlags().IntVarP(&opts.Connections, "connections", "c", 10, "Concurrent connections")

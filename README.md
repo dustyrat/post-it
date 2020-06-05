@@ -21,16 +21,16 @@ post-it is a HTTP(S) CLI library for calling a variaty of urls from an input fil
 All methods use the request_body column for requests.
 
 Usage:
-  post-it [command] <url> [flags]
+post-it [command] <url>
 
 Available Commands:
-  DELETE      The DELETE method deletes the specified resource.
-  GET         The HTTP GET method requests a representation of the specified resource.
-  HEAD        The HEAD method asks for a response identical to that of a GET request, but without the response body.
-  PATCH       The PATCH method is used to apply partial modifications to a resource.
-  POST        The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.
-  PUT         The PUT method replaces all current representations of the target resource with the request payload.
-  help        Help about any command
+DELETE      The DELETE method deletes the specified resource.
+GET         The HTTP GET method requests a representation of the specified resource.
+HEAD        The HEAD method asks for a response identical to that of a GET request, but without the response body.
+PATCH       The PATCH method is used to apply partial modifications to a resource.
+POST        The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.
+PUT         The PUT method replaces all current representations of the target resource with the request payload.
+help        Help about any command
 
 Flags:
   -c, --connections int          Concurrent connections (default 10)
@@ -50,14 +50,40 @@ Flags:
 Use "post-it [command] --help" for more information about a command.
 ```
 
+## URL Pattern
+THe URL argumant uses `{SOME_NAME}` to take columns from the input csv file and replce them. <br>
+ex:<br>
+
+URL: http://localhost:3000/{column_1}/path/{column_3}/{column_2}
+
+Sample Input File > Parsed URL:
+```
+column_1,column_2,column_3
+1,6,2                       > http://localhost:3000/1/path/2/6
+2,48,HELLO                  > http://localhost:3000/2/path/HELLO/48
+3,5,21                      > http://localhost:3000/3/path/21/5
+```
+
 ## Examples
-Basic:
+### Basic:
 > Simple STD output. Any non 2xx responses will be saved in output.csv.
 > Uses default input file 'input.csv'
 ```
 post-it GET "http://localhost:3000/get/{id}"
 ```
-Output:
+
+Sample Input File:
+```
+id
+1
+2
+3
+4
+5
+...
+```
+
+STDOUT:
 ```
 10 / 10  [=====================================] complete  12.5/s Elapsed: 0s   
 
@@ -70,12 +96,30 @@ Statistics
    Latency |    497.95ms |    246.37ms | 799.77ms
 ```
 
-Specific Input:
+File Output (output.csv):
+```
+id,status,error
+
+```
+
+### Input:
 > Uses './test/input.csv' as input file
 ```
 post-it GET "http://localhost:3000/get/{id}" -i ./test/input.csv
 ```
-Output:
+
+Sample Input File:
+```
+id
+1
+2
+3
+4
+5
+...
+```
+
+STDOUT:
 ```
 10 / 10  [=====================================] complete  10.4/s Elapsed: 0s   
 
@@ -87,13 +131,32 @@ Statistics
    Req/sec |       10.41 |          NA | NA
    Latency |    599.45ms |    294.34ms | 959.44ms
 ```
+
+Sample Input File:
+```
+id
+1
+2
+3
+4
+5
+...
+```
+
+File Output (output.csv):
+```
+id,status,error
+
+```
 ---
-Specific Output:
+
+### Output:
 > Outputs request results to './results.csv'
 ```
 post-it GET "http://localhost:3000/get/{id}" -o ./results.csv
 ```
-Output:
+
+STDOUT:
 ```
 10 / 10  [=====================================] complete  9.5/s Elapsed: 1s   
 
@@ -105,31 +168,84 @@ Statistics
    Req/sec |        9.51 |          NA | NA
    Latency |    597.58ms |    341.38ms | 1.05s
 ```
+
+Sample Input File:
+```
+id
+1
+2
+3
+4
+5
+...
+```
+
+File Output (results.csv):
+```
+id,status,error
+
+```
 ---
-Specific Status:
+
+### Status:
 > Outputs 2xx request results to './output.csv'
 ```
 post-it GET "http://localhost:3000/get/{id}" -s 2xx
 ```
-Output:
+
+STDOUT:
 ```
 10 / 10  [=====================================] complete  11.5/s Elapsed: 0s   
 
 Responses
-   OK: 200 | 
-        10 | 
+   OK: 200 |   Not Found: 404 | 
+         9 |                1 | 
 Statistics
            |     Average |      STDDEV | Max
    Req/sec |       11.51 |          NA | NA
    Latency |    531.55ms |    251.08ms | 868.61ms
 ```
+
+Sample Input File:
+```
+id
+1
+2
+3
+4
+5
+...
+```
+
+File Output (output.csv):
+```
+id,status,error
+7,200,
+8,404,
+6,200,
+4,200,
+...
+```
 ---
-Errors Only:
+
+### Errors Only:
 > Output only client errors to './output.csv'
 ```
 post-it GET "http://localhost:3000/get/{id}" -e -s none
 ```
-Output:
+
+Sample Input File:
+```
+id
+1
+2
+3
+4
+5
+...
+```
+
+STDOUT:
 ```
 10 / 10  [=====================================] complete  1810.6/s Elapsed: 0s   
 
@@ -141,13 +257,116 @@ Statistics
    Req/sec |       0.00 |        NA | NA
    Latency |         0s |        0s | 0s
 ```
+
+File Output (output.csv):
+```
+id,status,error
+1,0,dial tcp [::1]:3000: connect: connection refused
+2,0,read tcp 127.0.0.1:54245->127.0.0.1:3000: read: connection reset by peer
+3,0,EOF
+...
+```
 ---
-Latency & Historgram:
-> Outputs request results to './results.csv'
+
+### Response Body:
+> Output record response bodies to './output.csv'
+```
+post-it GET "http://localhost:3000/get/{id}" -b -s any
+```
+
+Sample Input File:
+```
+id
+1
+2
+3
+4
+5
+...
+```
+
+STDOUT:
+```
+10 / 10  [=====================================] complete  12.4/s Elapsed: 0s   
+
+Responses
+   OK: 200 | 
+        10 | 
+Statistics
+           |     Average |     STDDEV | Max
+   Req/sec |       12.43 |         NA | NA
+   Latency |    500.21ms |    247.6ms | 804.17ms
+```
+
+File Output (output.csv):
+```
+id,status,response_body,error
+1,200,"{""id"":""1"",""string"":""asdf safasdf asdf""...,
+3,200,"{""id"":""3"",""string"":""asdf safasdf asdf""...,
+9,200,"{""id"":""9"",""string"":""asdf safasdf asdf""...,
+8,200,"{""id"":""8"",""string"":""asdf safasdf asdf""...,
+...
+```
+---
+
+### Response Headers:
+> Output record response bodies to './output.csv'
+```
+post-it GET "http://localhost:3000/get/{id}" --record-headers -s any
+```
+
+Sample Input File:
+```
+id
+1
+2
+3
+4
+5
+...
+```
+
+STDOUT:
+```
+10 / 10  [=====================================] complete  10.5/s Elapsed: 0s   
+
+Responses
+   OK: 200 | 
+        10 | 
+Statistics
+           |    Average |      STDDEV | Max
+   Req/sec |      10.51 |          NA | NA
+   Latency |    599.2ms |    294.25ms | 950.44ms
+```
+
+File Output (output.csv):
+```
+id,status,headers,error
+4,200,"Content-Length: 371; Content-Type: application/json; Vary: Origin;",
+1,200,"Content-Length: 371; Content-Type: application/json; Vary: Origin;",
+7,200,"Content-Length: 369; Content-Type: application/json; Vary: Origin;",
+2,200,"Content-Length: 371; Content-Type: application/json; Vary: Origin;",
+...
+```
+---
+
+### Latency & Historgram:
 ```
 post-it GET "http://localhost:3000/get/{id}" -lg
 ```
-Output:
+
+Sample Input File:
+```
+id
+1
+2
+3
+4
+5
+...
+```
+
+STDOUT:
 ```
 10 / 10  [=====================================] complete  9.8/s Elapsed: 1s   
 

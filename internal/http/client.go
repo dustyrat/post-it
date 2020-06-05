@@ -170,31 +170,6 @@ func (c *Client) Do(method string, rel *url.URL, headers http.Header, body io.Re
 	return c.do(request)
 }
 
-// Get helper method for making a GET request
-func (c *Client) Get(rel *url.URL, headers http.Header) (*Response, error) {
-	return c.Do(http.MethodGet, rel, headers, nil)
-}
-
-// Put helper method for making a PUT request
-func (c *Client) Put(rel *url.URL, headers http.Header, body io.Reader) (*Response, error) {
-	return c.Do(http.MethodPut, rel, headers, body)
-}
-
-// Post helper method for making a POST request
-func (c *Client) Post(rel *url.URL, headers http.Header, body io.Reader) (*Response, error) {
-	return c.Do(http.MethodPost, rel, headers, body)
-}
-
-// Delete helper method for making a DELETE request
-func (c *Client) Delete(rel *url.URL, headers http.Header) (*Response, error) {
-	return c.Do(http.MethodDelete, rel, headers, nil)
-}
-
-// Head helper method for making a HEAD request
-func (c *Client) Head(rel *url.URL, headers http.Header) (*Response, error) {
-	return c.Do(http.MethodHead, rel, headers, nil)
-}
-
 func (c *Client) do(request *http.Request) (*Response, error) {
 	start := time.Now()
 	resp, err := c.client.Do(request)
@@ -238,26 +213,7 @@ func (c *Client) do(request *http.Request) (*Response, error) {
 	return &response, nil
 }
 
-// IsSuccessful checks if server code being passed is a successfully code
-func IsSuccessful(code int) bool {
-	return inRange(code, 200, 300)
-}
-
-// IsClientError checks if server code being passed is a client error code
-func IsClientError(code int) bool {
-	return inRange(code, 400, 500)
-}
-
-// IsServerError checks if server code being passed is a server error code
-func IsServerError(code int) bool {
-	return inRange(code, 500, 600)
-}
-
-func inRange(code, a, b int) bool {
-	return a <= code && code < b
-}
-
 // InRange ...
 func InRange(code, a, b int) bool {
-	return inRange(code, a, b)
+	return a <= code && code < b
 }

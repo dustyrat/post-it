@@ -24,24 +24,18 @@ All methods use the request_body column for requests.
 	}
 
 	opts := options.Options{}
-	cmd.PersistentFlags().StringVarP(&opts.Input, "input", "i", "input.csv", "Input File")
-	cmd.PersistentFlags().StringVarP(&opts.Output, "output", "o", "output.csv", "Output File")
-
-	cmd.PersistentFlags().BoolVarP(&opts.Latency, "latencies", "l", false, "Print latency statistics")
-	cmd.PersistentFlags().BoolVarP(&opts.Histogram, "histogram", "g", false, "Print histogram statistics")
-
-	cmd.PersistentFlags().StringArrayVarP(&opts.Headers, "header", "H", []string{}, "HTTP headers to use (\"K: V\")")
-	cmd.PersistentFlags().StringVarP(&opts.RawUrl, "url", "u", "", "Url. Should be in the format 'http://localhost:3000/path/{column_name}' if input file is specified")
-	cmd.MarkPersistentFlagRequired("url")
-
-	cmd.PersistentFlags().BoolVarP(&opts.Flags.Errors, "errors", "e", false, "Record erorrs to output file")
-	cmd.PersistentFlags().StringVarP(&opts.Flags.Status, "response-status", "s", "-2xx", "Record response status to output file under the headers status. eg: any, none, 2xx, -2xx (non 2xx statuses), 4xx, 5xx, 200, 301, 404, 503...")
-	cmd.PersistentFlags().BoolVarP(&opts.Flags.Body, "record-body", "b", false, "Record body to output file under the response_body column.")
-	// cmd.PersistentFlags().BoolVar(&opts.Flags.Headers, "record-headers", false, "Record headers to output file under the headers column.")
-
 	cmd.PersistentFlags().IntVarP(&opts.Connections, "connections", "c", 10, "Concurrent connections")
-	cmd.PersistentFlags().DurationVarP(&opts.Client.Timeout, "timeout", "t", 3000*time.Millisecond, "Connection timeout")
+	cmd.PersistentFlags().BoolVarP(&opts.Flags.Errors, "errors", "e", false, "Record erorrs to output file")
+	cmd.PersistentFlags().StringArrayVarP(&opts.Headers, "header", "H", []string{}, "HTTP headers to use (\"K: V\")")
+	cmd.PersistentFlags().BoolVarP(&opts.Histogram, "histogram", "g", false, "Print histogram statistics")
+	cmd.PersistentFlags().StringVarP(&opts.Input, "input", "i", "input.csv", "Input File")
 	cmd.PersistentFlags().BoolVar(&opts.Client.InsecureSkipVerify, "insecure", true, "Insecure Skip Verify")
+	cmd.PersistentFlags().BoolVarP(&opts.Latency, "latencies", "l", false, "Print latency statistics")
+	cmd.PersistentFlags().StringVarP(&opts.Output, "output", "o", "output.csv", "Output File")
+	cmd.PersistentFlags().BoolVarP(&opts.Flags.Body, "record-body", "b", false, "Record body to output file under the response_body column.")
+	cmd.PersistentFlags().BoolVar(&opts.Flags.Headers, "record-headers", false, "Record headers to output file under the headers column.")
+	cmd.PersistentFlags().StringVarP(&opts.Flags.Status, "response-status", "s", "-2xx", "Record response status to output file under the headers status. eg: any, none, 2xx, -2xx (non 2xx statuses), 4xx, 5xx, 200, 301, 404, 503...")
+	cmd.PersistentFlags().DurationVarP(&opts.Client.Timeout, "timeout", "t", 3000*time.Millisecond, "Connection timeout")
 
 	cmd.AddCommand(method.NewCmdDelete(&opts))
 	cmd.AddCommand(method.NewCmdGet(&opts))

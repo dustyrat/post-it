@@ -57,9 +57,9 @@ func (e *entry) Strings(flags options.Flags) []string {
 	response := e.request.Response
 	if response != nil {
 		out = append(out, strconv.Itoa(response.StatusCode))
-		// if flags.Headers {
-		// 	out = append(out, toString(response.Header))
-		// }
+		if flags.Headers {
+			out = append(out, toString(response.Header))
+		}
 		if flags.Body {
 			out = append(out, string(response.Body))
 		}

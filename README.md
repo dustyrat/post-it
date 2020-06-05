@@ -5,6 +5,7 @@
 [![Coverage](https://gocover.io/_badge/github.com/DustyRat/post-it)](https://gocover.io/github.com/DustyRat/post-it)
 
 post-it is a HTTP(S) testing tool. It is written in Go programming language.
+> Insperation taken from https://www.postman.com/ and https://github.com/codesenberg/bombardier
 
 
 ## Installation
@@ -20,7 +21,7 @@ post-it is a HTTP(S) CLI library for calling a variaty of urls from an input fil
 All methods use the request_body column for requests.
 
 Usage:
-  post-it [command]
+  post-it [command] <url> [flags]
 
 Available Commands:
   DELETE      The DELETE method deletes the specified resource.
@@ -42,9 +43,9 @@ Flags:
   -l, --latencies                Print latency statistics
   -o, --output string            Output File (default "output.csv")
   -b, --record-body              Record body to output file under the response_body column.
+      --record-headers           Record headers to output file under the headers column.
   -s, --response-status string   Record response status to output file under the headers status. eg: any, none, 2xx, -2xx (non 2xx statuses), 4xx, 5xx, 200, 301, 404, 503... (default "-2xx")
   -t, --timeout duration         Connection timeout (default 3s)
-  -u, --url string               Url. Should be in the format 'http://localhost:3000/path/{column_name}' if input file is specified
 
 Use "post-it [command] --help" for more information about a command.
 ```
@@ -54,7 +55,7 @@ Basic:
 > Simple STD output. Any non 2xx responses will be saved in output.csv.
 > Uses default input file 'input.csv'
 ```
-post-it GET -u "http://localhost:3000/get/{id}"
+post-it GET "http://localhost:3000/get/{id}"
 ```
 Output:
 ```
@@ -72,7 +73,7 @@ Statistics
 Specific Input:
 > Uses './test/input.csv' as input file
 ```
-post-it GET -u "http://localhost:3000/get/{id}" -i ./test/input.csv
+post-it GET "http://localhost:3000/get/{id}" -i ./test/input.csv
 ```
 Output:
 ```
@@ -90,7 +91,7 @@ Statistics
 Specific Output:
 > Outputs request results to './results.csv'
 ```
-post-it GET -u "http://localhost:3000/get/{id}" -o ./results.csv
+post-it GET "http://localhost:3000/get/{id}" -o ./results.csv
 ```
 Output:
 ```
@@ -108,7 +109,7 @@ Statistics
 Specific Status:
 > Outputs 2xx request results to './output.csv'
 ```
-post-it GET -u "http://localhost:3000/get/{id}" -s 2xx
+post-it GET "http://localhost:3000/get/{id}" -s 2xx
 ```
 Output:
 ```
@@ -126,7 +127,7 @@ Statistics
 Errors Only:
 > Output only client errors to './output.csv'
 ```
-post-it GET -u "http://localhost:3000/get/{id}" -e -s none
+post-it GET "http://localhost:3000/get/{id}" -e -s none
 ```
 Output:
 ```
@@ -144,7 +145,7 @@ Statistics
 Latency & Historgram:
 > Outputs request results to './results.csv'
 ```
-post-it GET -u "http://localhost:3000/get/{id}" -lg
+post-it GET "http://localhost:3000/get/{id}" -lg
 ```
 Output:
 ```

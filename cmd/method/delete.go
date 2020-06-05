@@ -14,11 +14,13 @@ import (
 // NewCmdDelete ...
 func NewCmdDelete(opts *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "DELETE",
+		Use:     "DELETE <url>",
 		Aliases: []string{"delete"},
+		Args:    cobra.ExactArgs(1),
 		Short:   "The DELETE method deletes the specified resource.",
-		Example: "post-it DELETE -u http://localhost:3000/path/{column_name}",
+		Example: "post-it DELETE http://localhost:3000/path/{column_name}",
 		Run: func(cmd *cobra.Command, args []string) {
+			opts.RawUrl = args[0]
 			opts.Client.Headers = internal.ParseHeaders(opts.Headers)
 			client, err := internal.New(opts.Client)
 			if err != nil {

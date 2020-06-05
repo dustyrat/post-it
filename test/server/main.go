@@ -286,6 +286,9 @@ func delete() http.HandlerFunc {
 
 func respond(w http.ResponseWriter, code int, contentType string, payload interface{}) {
 	body, _ := marshal(contentType, payload)
+	if contentType == "" {
+		contentType = "application/json"
+	}
 	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(code)
 	w.Write(body)

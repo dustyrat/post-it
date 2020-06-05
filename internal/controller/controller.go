@@ -44,9 +44,9 @@ func (c *Controller) Run(file, method, rawURL string) error {
 	headers := reader.Headers()
 	if c.Writer != nil {
 		headers = append(headers, "status")
-		// if c.Options.Flags.Headers {
-		// 	headers = append(headers, "headers")
-		// }
+		if c.Options.Flags.Headers {
+			headers = append(headers, "headers")
+		}
 		if c.Options.Flags.Body {
 			headers = append(headers, "response_body")
 		}

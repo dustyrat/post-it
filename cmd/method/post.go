@@ -14,11 +14,13 @@ import (
 // NewCmdPost ...
 func NewCmdPost(opts *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "POST",
+		Use:     "POST <url>",
 		Aliases: []string{"post"},
+		Args:    cobra.ExactArgs(1),
 		Short:   "The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.",
-		Example: "post-it POST -u http://localhost:3000/path/{column_name}",
+		Example: "post-it POST http://localhost:3000/path/{column_name}",
 		Run: func(cmd *cobra.Command, args []string) {
+			opts.RawUrl = args[0]
 			opts.Client.Headers = internal.ParseHeaders(opts.Headers)
 			client, err := internal.New(opts.Client)
 			if err != nil {

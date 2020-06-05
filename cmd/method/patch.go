@@ -14,11 +14,13 @@ import (
 // NewCmdPatch ...
 func NewCmdPatch(opts *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "PATCH",
+		Use:     "PATCH <url>",
 		Aliases: []string{"patch"},
+		Args:    cobra.ExactArgs(1),
 		Short:   "The PATCH method is used to apply partial modifications to a resource.",
-		Example: "post-it PATCH -u http://localhost:3000/path/{column_name}",
+		Example: "post-it PATCH http://localhost:3000/path/{column_name}",
 		Run: func(cmd *cobra.Command, args []string) {
+			opts.RawUrl = args[0]
 			opts.Client.Headers = internal.ParseHeaders(opts.Headers)
 			client, err := internal.New(opts.Client)
 			if err != nil {

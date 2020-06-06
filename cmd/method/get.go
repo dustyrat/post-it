@@ -4,46 +4,46 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/DustyRat/post-it/pkg/client"
-	"github.com/DustyRat/post-it/pkg/controller"
-	"github.com/DustyRat/post-it/pkg/file"
-	"github.com/DustyRat/post-it/pkg/file/csv"
-	"github.com/DustyRat/post-it/pkg/options"
+	"github.com/DustyRat/post-it/internal/controller"
+	"github.com/DustyRat/post-it/internal/file/csv"
+	internal "github.com/DustyRat/post-it/internal/http"
+	"github.com/DustyRat/post-it/internal/options"
 
 	"github.com/spf13/cobra"
 )
 
 // NewCmdGet ...
-func NewCmdGet(options *options.Options) *cobra.Command {
+func NewCmdGet(opts *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "GET",
+		Use:     "GET <url>",
 		Aliases: []string{"get"},
+		Args:    cobra.ExactArgs(1),
 		Short:   "The HTTP GET method requests a representation of the specified resource.",
-		Example: "post-it GET -u http://localhost:3000/path/{column_name}",
+		Example: "post-it GET http://localhost:3000/path/{column_name}",
 		Run: func(cmd *cobra.Command, args []string) {
-			options.Client.Headers = client.ParseHeaders(options.Headers)
-			clt, err := client.NewClient(options.Client)
+			opts.RawUrl = args[0]
+			opts.Client.Headers = internal.ParseHeaders(opts.Headers)
+			client, err := internal.New(opts.Client)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			var writer *csv.Writer
-			if options.Output != "" {
-				writer, err = csv.NewWriter(options.Output)
+			if opts.Output != "" {
+				writer, err = csv.NewWriter(opts.Output)
 				if err != nil {
 					log.Fatal(err)
 				}
 			}
 
 			ctrl := controller.Controller{
-				Options:  options,
-				Client:   clt,
-				Routines: options.Connections,
+				Options:  opts,
+				Client:   client,
+				Routines: opts.Connections,
 				Writer:   writer,
 			}
 
-			headers, requests := file.ParseFile(options.Input, http.MethodGet, options.RawUrl, options.RequestBody)
-			err = ctrl.Run(headers, requests)
+			err = ctrl.Run(opts.Input, http.MethodGet, opts.RawUrl)
 			if err != nil {
 				log.Fatal(err)
 			}

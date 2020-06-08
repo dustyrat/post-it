@@ -50,7 +50,9 @@ func (c *Controller) Run(file, method, rawURL string) error {
 		if c.Options.Flags.Body {
 			headers = append(headers, "response_body")
 		}
-		headers = append(headers, "error")
+		if c.Options.Flags.Errors {
+			headers = append(headers, "error")
+		}
 		c.Writer.Write(headers)
 	}
 

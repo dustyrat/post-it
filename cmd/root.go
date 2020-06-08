@@ -38,10 +38,11 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func Execute(version string) {
 	cmd := &cobra.Command{
-		Use:   "post-it",
-		Short: "post-it is a HTTP(S) CLI library for calling a variaty of urls from an input file.",
+		Use:     "post-it",
+		Version: version,
+		Short:   "post-it is a HTTP(S) CLI library for calling a variaty of urls from an input file.",
 		Long: `post-it is a HTTP(S) CLI library for calling a variaty of urls from an input file.
 		
 All methods use the request_body column for requests.

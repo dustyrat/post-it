@@ -73,11 +73,14 @@ func (e *entry) Strings(flags options.Flags) []string {
 		}
 	}
 
-	if e.err != nil {
-		out = append(out, e.err.Error())
-	} else {
-		out = append(out, "")
+	if flags.Errors {
+		if e.err != nil {
+			out = append(out, e.err.Error())
+		} else {
+			out = append(out, "")
+		}
 	}
+
 	return out
 }
 
@@ -109,13 +112,6 @@ func write(w *csv.Writer, opts options.Options, entry entry) {
 	request := entry.request
 	response := request.Response
 
-	if opts.Flags.Errors {
-		if entry.err != nil {
-			output := entry.Strings(opts.Flags)
-			w.Write(output)
-		}
-	}
-
 	if opts.Flags.Status == "any" {
 		output := entry.Strings(opts.Flags)
 		w.Write(output)
@@ -128,7 +124,7 @@ func write(w *csv.Writer, opts options.Options, entry entry) {
 				output := entry.Strings(opts.Flags)
 				w.Write(output)
 			}
-		} else {
+		} else if status < 0 {
 			a := -status
 			b := a + 100
 			if !internal.InRange(response.StatusCode, a, b) {
@@ -139,6 +135,11 @@ func write(w *csv.Writer, opts options.Options, entry entry) {
 	} else if statusDdd.MatchString(opts.Flags.Status) {
 		status, _ := strconv.Atoi(opts.Flags.Status)
 		if response.StatusCode == status {
+			output := entry.Strings(opts.Flags)
+			w.Write(output)
+		}
+	} else if opts.Flags.Errors {
+		if entry.err != nil {
 			output := entry.Strings(opts.Flags)
 			w.Write(output)
 		}

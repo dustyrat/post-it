@@ -96,8 +96,13 @@ func get() http.HandlerFunc {
 			e.Str("handler", "get").Str("Content-Type", contentType).Str("Accept", accept).Str("id", id).Int64("resp_time", time.Now().Sub(start).Milliseconds()).Send()
 		}(e, start)
 
-		if id == "" {
+		if id == "5" {
 			respond(w, http.StatusNotFound, "text/html", http.StatusText(http.StatusNotFound))
+			return
+		}
+
+		if id == "10" {
+			time.Sleep(time.Duration(rand.Intn(10000)) * time.Millisecond)
 			return
 		}
 		now := time.Now()
@@ -295,7 +300,6 @@ func respond(w http.ResponseWriter, code int, contentType string, payload interf
 	time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
 	time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
 	time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
-	// time.Sleep(time.Duration(rand.Intn(10000)) * time.Millisecond)
 }
 
 func unmarshal(accept string, body []byte, v interface{}) error {

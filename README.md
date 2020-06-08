@@ -220,7 +220,6 @@ File Output (output.csv):
 ```
 id,status,error
 7,200,
-8,404,
 6,200,
 4,200,
 ...
